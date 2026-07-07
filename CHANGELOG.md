@@ -1,0 +1,18 @@
+# Changelog
+
+Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); versionamento [SemVer](https://semver.org/lang/pt-BR/). Toda feature nova ganha entrada em **[Não lançado]** antes de virar versão.
+
+## [Não lançado]
+
+### Adicionado
+
+- Estrutura inicial do projeto: Expo SDK 54 + TypeScript + Expo Router.
+- Banco SQLite local (`expo-sqlite`) com runner de migrations (`PRAGMA user_version`) e schema v1: `accounts`, `tags`, `transactions`, `installment_purchases`, `goals`, `ai_insights_cache`.
+- Aba **Rotação**: saldo líquido do período (30 dias), lista de entradas/saídas e registro de transações com tags livres.
+- Aba **Parcelas**: cadastro de compras parceladas com progresso visual e lembretes locais de vencimento (`expo-notifications`).
+- Aba **Dicas**: dica financeira gerada por IA a partir do resumo agregado, com cache local de 24h.
+- Aba **Metas**: metas com progresso, aportes manuais e plano de ação estruturado gerado por IA.
+- Trava biométrica na abertura do app (`expo-local-authentication`).
+- Cloudflare Worker `bearing-ai`: proxy stateless para a Claude API (`claude-haiku-4-5`) com `X-App-Secret`, rate limiting e structured output no plano de metas.
+- Documentação: README, ARCHITECTURE, CONTRIBUTING, DATA_MODEL, API_CONTRACTS, AI_PROMPTS, ADR-0001 (local-first) e propostas ADR-0002/0003/0004.
+- TypeDoc configurado (`npm run docs` → `docs/generated/`).
