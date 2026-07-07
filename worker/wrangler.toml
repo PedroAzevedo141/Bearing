@@ -1,0 +1,26 @@
+# wrangler.toml
+#
+# Configuração do Worker de IA do Bearing. O Worker é a única peça do sistema
+# que fala com o mundo externo — recebe agregados, repassa pra API da
+# Anthropic e devolve. Não persiste nada (ver docs/API_CONTRACTS.md).
+#
+# Segredos (NUNCA commitá-los; use `wrangler secret put`):
+#   wrangler secret put ANTHROPIC_API_KEY   # chave do Claude Console
+#   wrangler secret put APP_SECRET          # mesmo valor de expo.extra.aiAppSecret
+#
+# Controle de custo adicional: spend limit de US$5 em Settings > Limits no
+# Claude Console + regra de rate limiting (20 req/h por IP) no dashboard
+# Cloudflare (Security > WAF > Rate limiting rules). O binding abaixo é uma
+# primeira camada (janela de 60s, limite do produto).
+
+name = "bearing-ai"
+main = "src/index.ts"
+compatibility_date = "2026-06-01"
+
+# Rate limiting nativo (janela máxima do binding é 60s; a regra de 20 req/h
+# fica no WAF do dashboard).
+[[unsafe.bindings]]
+name = "RATE_LIMITER"
+type = "ratelimit"
+namespace_id = "1001"
+simple = { limit = 10, period = 60 }
