@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "Bearing",
+    "slug": "bearing",
+    "version": "0.1.0",
+    "scheme": "bearing",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "tech.ordep.bearing"
+    },
+    "android": {
+      "package": "tech.ordep.bearing"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-sqlite",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "O Bearing usa Face ID para proteger seus dados financeiros."
+        }
+      ],
+      "expo-notifications"
+    ],
+    "extra": {
+      "aiWorkerUrl": "https://bearing-ai.SEU-SUBDOMINIO.workers.dev",
+      "aiAppSecret": "TROQUE-ESTE-SEGREDO"
+    }
+  }
+}
