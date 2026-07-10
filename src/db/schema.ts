@@ -76,3 +76,48 @@ CREATE TABLE IF NOT EXISTS ai_insights_cache (
   generated_at INTEGER NOT NULL
 );
 `;
+
+/**
+ * SQL da migration v2: trava invariantes de negócio como `CHECK` no banco
+ * (defesa em profundidade — validação de UI não substitui trava no banco,
+ * ver docs/DATA_MODEL.md).
+ *
+ * SQLite não suporta `ALTER TABLE ... ADD CONSTRAINT` nem adicionar `CHECK`
+ * a uma coluna existente, então as duas tabelas são reconstruídas pelo
+ * procedimento padrão do próprio SQLite: cria a tabela nova já com o
+ * `CHECK`, copia os dados, apaga a antiga, renomeia a nova. Nenhuma outra
+ * tabela referencia `transactions`/`installment_purchases` via chave
+ * estrangeira, então o rebuild é seguro sem mexer em `PRAGMA foreign_keys`
+ * (que, de todo modo, não pode ser alterado dentro de uma transação).
+ */
+export const SCHEMA_V2_CONSTRAINTS = `
+CREATE TABLE transactions_new (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(id),
+  tag_id TEXT REFERENCES tags(id),
+  amount_cents INTEGER NOT NULL CHECK (amount_cents > 0),
+  type TEXT NOT NULL CHECK (type IN ('income', 'expense')),
+  description TEXT,
+  occurred_at INTEGER NOT NULL,
+  created_at INTEGER NOT NULL
+);
+INSERT INTO transactions_new SELECT * FROM transactions;
+DROP TABLE transactions;
+ALTER TABLE transactions_new RENAME TO transactions;
+CREATE INDEX IF NOT EXISTS idx_transactions_occurred_at ON transactions(occurred_at);
+
+CREATE TABLE installment_purchases_new (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  tag_id TEXT REFERENCES tags(id),
+  total_amount_cents INTEGER NOT NULL CHECK (total_amount_cents > 0),
+  installment_count INTEGER NOT NULL,
+  current_installment INTEGER NOT NULL,
+  first_due_date INTEGER NOT NULL,
+  created_at INTEGER NOT NULL,
+  CHECK (current_installment BETWEEN 1 AND installment_count)
+);
+INSERT INTO installment_purchases_new SELECT * FROM installment_purchases;
+DROP TABLE installment_purchases;
+ALTER TABLE installment_purchases_new RENAME TO installment_purchases;
+`;
