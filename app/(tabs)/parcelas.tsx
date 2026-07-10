@@ -1,169 +1,121 @@
 /**
  * Aba 2 — Compras parceladas: cards com progresso das parcelas e formulário
- * de cadastro. Cadastrar agenda lembretes locais de vencimento.
+ * de cadastro/edição. Cadastrar agenda lembretes locais de vencimento;
+ * editar/excluir são via swipe em cada card (ver docs/adr/0006).
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  Alert,
-  Button,
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { FlatList, KeyboardAvoidingView, Platform, Text, View } from 'react-native';
+import { Button, List } from 'react-native-paper';
 
+import { confirmDestructive } from '../../src/components/ConfirmDialog';
+import { InstallmentForm } from '../../src/components/forms/InstallmentForm';
 import { InstallmentCard } from '../../src/components/InstallmentCard';
+import { SwipeableRow } from '../../src/components/SwipeableRow';
 import { listTags } from '../../src/db/queries/tags';
 import { useInstallments } from '../../src/hooks/useInstallments';
-import type { Tag } from '../../src/types';
-import { installmentAmountCents, parseCents } from '../../src/utils/money';
+import type { InstallmentPurchase, Tag } from '../../src/types';
+import { installmentAmountCents, isInstallmentCompleted } from '../../src/utils/money';
 
 export default function ParcelasScreen() {
-  const { purchases, addPurchase, removePurchase } = useInstallments();
+  const { purchases, addPurchase, editPurchase, removePurchase } = useInstallments();
+
+  const activePurchases = useMemo(
+    () => purchases.filter((p) => !isInstallmentCompleted(p)),
+    [purchases]
+  );
+  const completedPurchases = useMemo(
+    () => purchases.filter((p) => isInstallmentCompleted(p)),
+    [purchases]
+  );
 
   const [tags, setTags] = useState<Tag[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [name, setName] = useState('');
-  const [total, setTotal] = useState('');
-  const [count, setCount] = useState('');
-  const [current, setCurrent] = useState('1');
-  const [tagName, setTagName] = useState('');
+  const [editingPurchase, setEditingPurchase] = useState<InstallmentPurchase | null>(null);
 
   useEffect(() => {
     listTags().then(setTags);
   }, [purchases]);
   const tagNameById = useMemo(() => new Map(tags.map((t) => [t.id, t.name])), [tags]);
 
-  async function handleAdd() {
-    const totalCents = parseCents(total);
-    const installmentCount = Number.parseInt(count, 10);
-    const currentInstallment = Number.parseInt(current, 10) || 1;
-    if (!name.trim() || totalCents === null || totalCents <= 0 || !(installmentCount >= 1)) {
-      Alert.alert('Dados incompletos', 'Preencha nome, valor total e número de parcelas.');
-      return;
-    }
-    await addPurchase({
-      name: name.trim(),
-      totalCents,
-      installmentCount,
-      currentInstallment: Math.min(Math.max(currentInstallment, 1), installmentCount),
-      firstDueDate: new Date(),
-      tagName: tagName.trim() || null,
+  function confirmDelete(id: string) {
+    confirmDestructive({
+      title: 'Excluir compra?',
+      message: 'Os lembretes de parcela serão reagendados.',
+      onConfirm: () => removePurchase(id),
     });
-    setName('');
-    setTotal('');
-    setCount('');
-    setCurrent('1');
-    setTagName('');
-    setShowForm(false);
   }
 
-  function confirmDelete(id: string) {
-    Alert.alert('Excluir compra?', 'Os lembretes de parcela serão reagendados.', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Excluir', style: 'destructive', onPress: () => removePurchase(id) },
-    ]);
+  function renderCard(item: InstallmentPurchase) {
+    return (
+      <SwipeableRow
+        key={item.id}
+        onEdit={() => setEditingPurchase(item)}
+        onDelete={() => confirmDelete(item.id)}
+      >
+        <InstallmentCard
+          name={item.name}
+          tagName={item.tag_id ? (tagNameById.get(item.tag_id) ?? null) : null}
+          currentInstallment={item.current_installment}
+          installmentCount={item.installment_count}
+          installmentAmountCents={installmentAmountCents(
+            item.total_amount_cents,
+            item.installment_count
+          )}
+        />
+      </SwipeableRow>
+    );
   }
 
   return (
     <KeyboardAvoidingView
-      style={styles.screen}
+      className="flex-1 bg-background"
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <FlatList
-        data={purchases}
+        data={activePurchases}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
-        renderItem={({ item }) => (
-          <InstallmentCard
-            name={item.name}
-            tagName={item.tag_id ? (tagNameById.get(item.tag_id) ?? null) : null}
-            currentInstallment={item.current_installment}
-            installmentCount={item.installment_count}
-            installmentAmountCents={installmentAmountCents(
-              item.total_amount_cents,
-              item.installment_count
-            )}
-            onLongPress={() => confirmDelete(item.id)}
-          />
-        )}
+        contentContainerClassName="py-2"
+        renderItem={({ item }) => renderCard(item)}
         ListEmptyComponent={
-          <Text style={styles.empty}>Nenhuma compra parcelada cadastrada.</Text>
+          <Text className="mt-8 px-6 text-center text-muted">
+            Nenhuma compra parcelada cadastrada.
+          </Text>
+        }
+        ListFooterComponent={
+          completedPurchases.length > 0 ? (
+            <List.Accordion
+              title={`Concluídas (${completedPurchases.length})`}
+              left={(props) => <List.Icon {...props} icon="check-circle-outline" />}
+            >
+              {completedPurchases.map(renderCard)}
+            </List.Accordion>
+          ) : null
         }
       />
 
-      {showForm ? (
-        <View style={styles.form}>
-          <TextInput
-            style={styles.input}
-            placeholder="Nome (ex: Notebook Dell)"
-            value={name}
-            onChangeText={setName}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Valor total (ex: 3500,00)"
-            keyboardType="decimal-pad"
-            value={total}
-            onChangeText={setTotal}
-          />
-          <View style={styles.rowInputs}>
-            <TextInput
-              style={[styles.input, styles.half]}
-              placeholder="Nº parcelas"
-              keyboardType="number-pad"
-              value={count}
-              onChangeText={setCount}
-            />
-            <TextInput
-              style={[styles.input, styles.half]}
-              placeholder="Parcela atual"
-              keyboardType="number-pad"
-              value={current}
-              onChangeText={setCurrent}
-            />
-          </View>
-          <TextInput
-            style={styles.input}
-            placeholder="Tag (opcional)"
-            autoCapitalize="none"
-            value={tagName}
-            onChangeText={setTagName}
-          />
-          <Button title="Salvar" onPress={handleAdd} />
-          <Button title="Cancelar" color="#888888" onPress={() => setShowForm(false)} />
-        </View>
+      {editingPurchase ? (
+        <InstallmentForm
+          key={editingPurchase.id}
+          mode="edit"
+          initialPurchase={editingPurchase}
+          initialTagName={
+            editingPurchase.tag_id ? (tagNameById.get(editingPurchase.tag_id) ?? null) : null
+          }
+          onSubmit={async (input) => {
+            await editPurchase(editingPurchase.id, input);
+            setEditingPurchase(null);
+          }}
+          onCancel={() => setEditingPurchase(null)}
+        />
+      ) : showForm ? (
+        <InstallmentForm mode="create" onSubmit={addPurchase} onCancel={() => setShowForm(false)} />
       ) : (
-        <View style={styles.form}>
-          <Button title="Nova compra parcelada" onPress={() => setShowForm(true)} />
+        <View className="border-t border-border bg-surface p-4">
+          <Button mode="contained" onPress={() => setShowForm(true)}>
+            Nova compra parcelada
+          </Button>
         </View>
       )}
     </KeyboardAvoidingView>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#F5F5F2' },
-  list: { paddingVertical: 8 },
-  empty: { textAlign: 'center', color: '#888888', marginTop: 32, paddingHorizontal: 24 },
-  form: {
-    padding: 16,
-    gap: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#CCCCCC',
-    backgroundColor: '#FFFFFF',
-  },
-  rowInputs: { flexDirection: 'row', gap: 8 },
-  half: { flex: 1 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#DDDDDD',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: '#FAFAFA',
-  },
-});
