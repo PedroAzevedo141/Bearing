@@ -9,9 +9,22 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { getOrCreateDefaultAccount } from '../db/queries/accounts';
 import { getOrCreateTag } from '../db/queries/tags';
-import { createTransaction, deleteTransaction, listTransactions } from '../db/queries/transactions';
+import {
+  createTransaction,
+  deleteTransaction,
+  listTransactions,
+  updateTransaction,
+} from '../db/queries/transactions';
 import type { Transaction, TransactionType } from '../types';
 import { calculateNetFlow } from '../utils/money';
+
+/** Campos editáveis de uma transação, comuns a criar e editar. */
+export interface TransactionInput {
+  amountCents: number;
+  type: TransactionType;
+  description: string | null;
+  tagName: string | null;
+}
 
 /** Estado e ações expostos pelo hook. */
 export interface UseTransactionsResult {
@@ -22,12 +35,13 @@ export interface UseTransactionsResult {
   /** true enquanto a primeira carga não terminou. */
   loading: boolean;
   /** Registra uma transação; a tag é criada se não existir. */
-  addTransaction: (input: {
-    amountCents: number;
-    type: TransactionType;
-    description: string | null;
-    tagName: string | null;
-  }) => Promise<void>;
+  addTransaction: (input: TransactionInput) => Promise<void>;
+  /**
+   * Atualiza uma transação existente; a tag é criada se não existir.
+   * Preserva `account_id` e `occurred_at` do registro original — o
+   * formulário não coleta esses campos.
+   */
+  editTransaction: (original: Transaction, input: TransactionInput) => Promise<void>;
   /** Remove uma transação e recarrega a lista. */
   removeTransaction: (id: string) => Promise<void>;
   /** Recarrega a lista manualmente (pull-to-refresh). */
@@ -55,12 +69,7 @@ export function useTransactions(periodDays: number): UseTransactionsResult {
   }, [refresh]);
 
   const addTransaction = useCallback(
-    async (input: {
-      amountCents: number;
-      type: TransactionType;
-      description: string | null;
-      tagName: string | null;
-    }) => {
+    async (input: TransactionInput) => {
       const account = await getOrCreateDefaultAccount();
       const tag = input.tagName ? await getOrCreateTag(input.tagName) : null;
       await createTransaction({
@@ -69,6 +78,22 @@ export function useTransactions(periodDays: number): UseTransactionsResult {
         amount_cents: input.amountCents,
         type: input.type,
         description: input.description,
+      });
+      await refresh();
+    },
+    [refresh]
+  );
+
+  const editTransaction = useCallback(
+    async (original: Transaction, input: TransactionInput) => {
+      const tag = input.tagName ? await getOrCreateTag(input.tagName) : null;
+      await updateTransaction(original.id, {
+        account_id: original.account_id,
+        tag_id: tag?.id ?? null,
+        amount_cents: input.amountCents,
+        type: input.type,
+        description: input.description,
+        occurred_at: original.occurred_at,
       });
       await refresh();
     },
@@ -88,6 +113,7 @@ export function useTransactions(periodDays: number): UseTransactionsResult {
     netFlowCents: calculateNetFlow(transactions),
     loading,
     addTransaction,
+    editTransaction,
     removeTransaction,
     refresh,
   };

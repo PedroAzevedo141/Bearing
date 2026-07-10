@@ -5,7 +5,7 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 
-import { addToGoal, createGoal, deleteGoal, listGoals } from '../db/queries/goals';
+import { addToGoal, createGoal, deleteGoal, listGoals, updateGoal } from '../db/queries/goals';
 import type { Goal } from '../types';
 
 /** Estado e ações expostos pelo hook. */
@@ -13,6 +13,11 @@ export interface UseGoalsResult {
   goals: Goal[];
   loading: boolean;
   addGoal: (input: { name: string; targetCents: number; deadline: Date | null }) => Promise<void>;
+  /**
+   * Atualiza nome e valor-alvo de uma meta existente. Não edita `deadline`
+   * nem `current_amount_cents` (progresso é só via `contribute`).
+   */
+  editGoal: (id: string, input: { name: string; targetCents: number }) => Promise<void>;
   /** Soma um aporte (centavos) ao progresso da meta. */
   contribute: (goalId: string, deltaCents: number) => Promise<void>;
   removeGoal: (id: string) => Promise<void>;
@@ -49,6 +54,14 @@ export function useGoals(): UseGoalsResult {
     [refresh]
   );
 
+  const editGoal = useCallback(
+    async (id: string, input: { name: string; targetCents: number }) => {
+      await updateGoal(id, { name: input.name, target_amount_cents: input.targetCents });
+      await refresh();
+    },
+    [refresh]
+  );
+
   const contribute = useCallback(
     async (goalId: string, deltaCents: number) => {
       await addToGoal(goalId, deltaCents);
@@ -65,5 +78,5 @@ export function useGoals(): UseGoalsResult {
     [refresh]
   );
 
-  return { goals, loading, addGoal, contribute, removeGoal, refresh };
+  return { goals, loading, addGoal, editGoal, contribute, removeGoal, refresh };
 }
