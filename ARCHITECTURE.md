@@ -7,26 +7,26 @@ Princípio central: **local-first**. Nenhum dado financeiro sai do dispositivo, 
 ```mermaid
 flowchart LR
     subgraph Dispositivo["📱 Dispositivo (iPhone/Android)"]
-        UI["UI (Expo Router)\n4 abas"]
-        Hooks["Hooks\n(useTransactions, useGoals...)"]
-        Queries["src/db/queries\n(uma função por operação)"]
-        DB[("SQLite local\nexpo-sqlite")]
-        Bio["Biometria\nexpo-local-authentication"]
-        Notif["Lembretes locais\nexpo-notifications"]
-        AiSvc["aiService.ts\n(só agregados)"]
+        UI["UI (Expo Router)<br/>4 abas · NativeWind + Paper"]
+        Hooks["Hooks<br/>(useTransactions, useGoals...)"]
+        Queries["src/db/queries<br/>(uma função por operação)"]
+        DB[("SQLite local<br/>expo-sqlite")]
+        Bio["Biometria<br/>expo-local-authentication"]
+        Notif["Lembretes locais<br/>expo-notifications"]
+        AiSvc["aiService.ts<br/>(só agregados)"]
     end
 
     subgraph Cloudflare["☁️ Cloudflare (stateless)"]
-        Worker["Worker bearing-ai\nvalida X-App-Secret\nrate limiting"]
+        Worker["Worker bearing-ai<br/>valida X-App-Secret<br/>rate limiting"]
     end
 
-    Anthropic["Claude API\nclaude-haiku-4-5"]
+    Anthropic["Claude API<br/>claude-haiku-4-5"]
 
     Bio --> UI
     UI --> Hooks --> Queries --> DB
     Hooks --> AiSvc
     Hooks --> Notif
-    AiSvc -- "resumo agregado\n(nunca transações)" --> Worker
+    AiSvc -- "resumo agregado<br/>(nunca transações)" --> Worker
     Worker -- "API key em secret" --> Anthropic
 ```
 
@@ -40,6 +40,7 @@ flowchart LR
 | Dados | `expo-sqlite`, 100% local | Elimina necessidade de backend, Auth e RLS; dados financeiros nunca saem do aparelho |
 | Segurança do app | `expo-local-authentication` (Face ID / biometria) | Única camada de proteção possível já que não existe servidor guardando os dados |
 | Notificações | `expo-notifications`, agendamento local | Lembretes de vencimento de parcela sem precisar de push server |
+| Design system | NativeWind (layout/tipografia) + React Native Paper (botões, inputs, cards) | Elimina `StyleSheet` duplicado e paleta de cor solta repetida em cada tela |
 | IA | Cloudflare Worker (proxy stateless) → Claude API (`claude-haiku-4-5-20251001`) | Worker segura a API key fora do bundle do app; Haiku é o modelo mais barato adequado à tarefa |
 | Controle de custo | Spend limit de US$5 em Settings > Limits no Claude Console | Teto de segurança contra abuso do endpoint |
 
@@ -61,3 +62,5 @@ Toda decisão arquitetural relevante (nova lib, mudança de padrão, nova integr
 | [0002 — Sincronização entre dispositivos](docs/adr/0002-proposta-sincronizacao-entre-dispositivos.md) | Proposta |
 | [0003 — Open Finance via Pluggy](docs/adr/0003-proposta-open-finance-pluggy.md) | Proposta |
 | [0004 — Metas compartilhadas](docs/adr/0004-proposta-metas-compartilhadas.md) | Proposta |
+| [0005 — Design system: NativeWind + React Native Paper](docs/adr/0005-design-system-nativewind-paper.md) | Aceito |
+| [0006 — Padrão de CRUD: editar e excluir](docs/adr/0006-padrao-crud-editar-excluir.md) | Aceito |
