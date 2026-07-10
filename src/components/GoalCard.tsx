@@ -13,11 +13,9 @@ interface GoalCardProps {
   goal: Goal;
   /** Chamado no toque — a tela abre as ações da meta. */
   onPress?: () => void;
-  /** Chamado no toque longo — o chamador decide confirmar/excluir. */
-  onLongPress?: () => void;
 }
 
-export function GoalCard({ goal, onPress, onLongPress }: GoalCardProps) {
+export function GoalCard({ goal, onPress }: GoalCardProps) {
   const progress =
     goal.target_amount_cents > 0
       ? Math.min(goal.current_amount_cents / goal.target_amount_cents, 1)
@@ -27,12 +25,7 @@ export function GoalCard({ goal, onPress, onLongPress }: GoalCardProps) {
     : null;
 
   return (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={onPress}
-      onLongPress={onLongPress}
-      delayLongPress={400}
-    >
+    <TouchableOpacity style={styles.card} onPress={onPress}>
       <View style={styles.header}>
         <Text style={styles.name} numberOfLines={1}>
           {goal.name}
