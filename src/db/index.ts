@@ -7,10 +7,11 @@
  * Componentes nunca importam este módulo diretamente — sempre via funções
  * de src/db/queries/ (regra do projeto: nada de SQL solto em componente).
  *
- * Relacionado: docs/DATA_MODEL.md, src/db/migrations/
+ * Relacionado: docs/DATA_MODEL.md, src/db/migrations/, src/db/applyMigrations.ts
  */
 import * as SQLite from 'expo-sqlite';
 
+import { applyMigrations } from './applyMigrations';
 import { MIGRATIONS } from './migrations';
 
 const DB_NAME = 'bearing.db';
@@ -36,25 +37,11 @@ export function getDb(): Promise<SQLite.SQLiteDatabase> {
 }
 
 /**
- * Abre o banco e aplica migrations pendentes usando PRAGMA user_version
- * como marcador de versão (0 = banco recém-criado).
+ * Abre o banco e aplica migrations pendentes.
  */
 async function openAndMigrate(): Promise<SQLite.SQLiteDatabase> {
   const db = await SQLite.openDatabaseAsync(DB_NAME);
   await db.execAsync('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
-
-  const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
-  const currentVersion = row?.user_version ?? 0;
-
-  for (const migration of MIGRATIONS) {
-    if (migration.version <= currentVersion) {
-      continue;
-    }
-    await db.withTransactionAsync(async () => {
-      await db.execAsync(migration.statements);
-      await db.execAsync(`PRAGMA user_version = ${migration.version}`);
-    });
-  }
-
+  await applyMigrations(db, MIGRATIONS);
   return db;
 }
