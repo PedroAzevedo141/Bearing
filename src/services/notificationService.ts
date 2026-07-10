@@ -5,32 +5,54 @@
  * expo-notifications. Tudo roda no aparelho — não existe push server
  * (decisão registrada em docs/adr/0001-local-first-architecture.md).
  *
+ * O import de `expo-notifications` tem efeito colateral: registra push
+ * remoto assim que o módulo carrega, o que derruba o bundle inteiro dentro
+ * do Expo Go desde o SDK 53 (suportado só em dev build/produção). Como este
+ * app só usa notificação local agendada, o módulo real só é carregado fora
+ * do Expo Go — dentro dele, os lembretes degradam silenciosamente para
+ * no-op em vez de crashar o app.
+ *
  * Relacionado: src/db/queries/installments.ts
  */
-import * as Notifications from 'expo-notifications';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
+import type * as ExpoNotifications from 'expo-notifications';
 
 import type { InstallmentPurchase } from '../types';
 import { formatCents, installmentAmountCents } from '../utils/money';
 
+declare const require: (id: string) => unknown;
+
 /** Hora local do dia em que os lembretes disparam. */
 const REMINDER_HOUR = 9;
 
-// Exibe alerta mesmo com o app em primeiro plano.
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-  }),
-});
+const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
+/** null dentro do Expo Go — ver nota no topo do arquivo. */
+const Notifications: typeof ExpoNotifications | null = isExpoGo
+  ? null
+  : (require('expo-notifications') as typeof ExpoNotifications);
+
+if (Notifications) {
+  // Exibe alerta mesmo com o app em primeiro plano.
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: false,
+      shouldSetBadge: false,
+    }),
+  });
+}
 
 /**
  * Pede permissão de notificação ao usuário, se ainda não concedida.
  *
- * @returns true se o app pode agendar notificações.
+ * @returns true se o app pode agendar notificações. Sempre false no Expo Go.
  */
 export async function requestNotificationPermission(): Promise<boolean> {
+  if (!Notifications) {
+    return false;
+  }
   const current = await Notifications.getPermissionsAsync();
   if (current.granted) {
     return true;
@@ -48,6 +70,7 @@ export async function requestNotificationPermission(): Promise<boolean> {
  *
  * @param purchase - Compra parcelada recém-cadastrada.
  * @returns IDs das notificações agendadas (úteis para cancelamento futuro).
+ *   Sempre `[]` no Expo Go.
  *
  * @example
  * const ids = await scheduleInstallmentReminders(compra);
@@ -56,6 +79,9 @@ export async function requestNotificationPermission(): Promise<boolean> {
 export async function scheduleInstallmentReminders(
   purchase: InstallmentPurchase
 ): Promise<string[]> {
+  if (!Notifications) {
+    return [];
+  }
   const granted = await requestNotificationPermission();
   if (!granted) {
     return [];
@@ -97,5 +123,8 @@ export async function scheduleInstallmentReminders(
  * por compra, então cancela tudo e reagenda as compras restantes.
  */
 export async function cancelAllReminders(): Promise<void> {
+  if (!Notifications) {
+    return;
+  }
   await Notifications.cancelAllScheduledNotificationsAsync();
 }
