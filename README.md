@@ -27,6 +27,35 @@ npx expo start     # inicia o Metro bundler
 
 Com o QR code na tela, abra o app **Expo Go** no celular (App Store / Play Store) e escaneie. iPhone e Android usam o mesmo fluxo.
 
+### Rodando no emulador Android (desktop)
+
+Supõe o Android Studio já instalado, com pelo menos um dispositivo virtual (AVD) criado. O binário `emulator` do Android SDK **não fica no PATH por padrão**, então os comandos abaixo usam o caminho completo (testado com um AVD `Medium_Phone_API_36.1`):
+
+- Windows (PowerShell): `$env:LOCALAPPDATA\Android\Sdk\emulator\emulator.exe`
+- macOS: `~/Library/Android/sdk/emulator/emulator`
+
+1. Liste os emuladores disponíveis:
+
+   ```powershell
+   & "$env:LOCALAPPDATA\Android\Sdk\emulator\emulator.exe" -list-avds
+   ```
+
+2. Abra o emulador desejado (substitua pelo nome retornado acima):
+
+   ```powershell
+   & "$env:LOCALAPPDATA\Android\Sdk\emulator\emulator.exe" -avd Medium_Phone_API_36.1
+   ```
+
+3. Com o emulador aberto, rode o app diretamente nele:
+
+   ```bash
+   npx expo start --android
+   ```
+
+   Isso inicia o Metro bundler, detecta o emulador aberto, instala o Expo Go automaticamente nele (se necessário) e carrega o app.
+
+> Dica: se quiser digitar só `emulator` sem o caminho completo, adicione a pasta do binário (`<SDK do Android>/emulator`) ao `PATH` do sistema.
+
 ### Worker de IA (opcional para rodar o app; obrigatório para as features de IA)
 
 ```bash
