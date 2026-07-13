@@ -74,6 +74,28 @@ export async function createTransaction(data: NewTransaction): Promise<Transacti
 }
 
 /**
+ * Atualiza os campos editáveis de uma transação existente.
+ *
+ * @param id - ID da transação.
+ * @param data - Novos valores dos campos (mesmo shape de `createTransaction`).
+ */
+export async function updateTransaction(id: string, data: NewTransaction): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(
+    `UPDATE transactions
+     SET account_id = ?, tag_id = ?, amount_cents = ?, type = ?, description = ?, occurred_at = ?
+     WHERE id = ?`,
+    data.account_id,
+    data.tag_id,
+    data.amount_cents,
+    data.type,
+    data.description,
+    data.occurred_at ?? Math.floor(Date.now() / 1000),
+    id
+  );
+}
+
+/**
  * Remove uma transação.
  *
  * @param id - ID da transação.

@@ -5,7 +5,7 @@
  * (inteiro) — float só aparece no último instante, dentro do Intl, para
  * exibição. Ver docs/DATA_MODEL.md para o porquê dessa regra.
  */
-import type { Transaction } from '../types';
+import type { InstallmentPurchase, Transaction } from '../types';
 
 /**
  * Calcula o saldo líquido (entradas - saídas) de um período.
@@ -87,4 +87,24 @@ export function parseCents(input: string): number | null {
  */
 export function installmentAmountCents(totalCents: number, installmentCount: number): number {
   return Math.round(totalCents / Math.max(installmentCount, 1));
+}
+
+/**
+ * Diz se uma compra parcelada já foi quitada.
+ *
+ * Sempre derivado de `current_installment`/`installment_count` — não existe
+ * coluna `status` no banco (ver docs/DATA_MODEL.md, seção
+ * `installment_purchases`): guardar um status seria duplicar informação que
+ * já existe nos dois contadores, com risco de os dois divergirem.
+ *
+ * @param purchase - Compra parcelada (só os dois campos usados no cálculo).
+ * @returns true se a parcela atual passou do total de parcelas.
+ *
+ * @example
+ * isInstallmentCompleted({ current_installment: 11, installment_count: 10 }); // true
+ */
+export function isInstallmentCompleted(
+  purchase: Pick<InstallmentPurchase, 'current_installment' | 'installment_count'>
+): boolean {
+  return purchase.current_installment > purchase.installment_count;
 }

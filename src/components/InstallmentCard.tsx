@@ -6,7 +6,7 @@
  * pra manter a lógica de dados isolada em src/db/queries.
  */
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { formatCents } from '../utils/money';
 
@@ -21,8 +21,6 @@ interface InstallmentCardProps {
   installmentCount: number;
   /** Valor de cada parcela, em centavos. */
   installmentAmountCents: number;
-  /** Chamado no toque longo — o chamador decide confirmar/excluir. */
-  onLongPress?: () => void;
 }
 
 export function InstallmentCard({
@@ -31,14 +29,13 @@ export function InstallmentCard({
   currentInstallment,
   installmentCount,
   installmentAmountCents,
-  onLongPress,
 }: InstallmentCardProps) {
   const paid = Math.min(currentInstallment - 1, installmentCount);
   const progress = installmentCount > 0 ? paid / installmentCount : 0;
   const remainingCents = (installmentCount - paid) * installmentAmountCents;
 
   return (
-    <TouchableOpacity style={styles.card} onLongPress={onLongPress} delayLongPress={400}>
+    <View style={styles.card}>
       <View style={styles.header}>
         <Text style={styles.name} numberOfLines={1}>
           {name}
@@ -55,7 +52,7 @@ export function InstallmentCard({
         <Text style={styles.detail}>{formatCents(installmentAmountCents)}/mês</Text>
         <Text style={styles.detail}>faltam {formatCents(remainingCents)}</Text>
       </View>
-    </TouchableOpacity>
+    </View>
   );
 }
 

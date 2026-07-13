@@ -71,6 +71,28 @@ export async function createGoal(data: NewGoal): Promise<Goal> {
 }
 
 /**
+ * Atualiza nome e valor-alvo de uma meta existente.
+ *
+ * Não edita `deadline` — o formulário de criação também não coleta esse
+ * campo hoje, então a edição mantém o mesmo escopo (não é regressão).
+ *
+ * @param id - ID da meta.
+ * @param data - Novo nome e valor-alvo.
+ */
+export async function updateGoal(
+  id: string,
+  data: { name: string; target_amount_cents: number }
+): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(
+    'UPDATE goals SET name = ?, target_amount_cents = ? WHERE id = ?',
+    data.name,
+    data.target_amount_cents,
+    id
+  );
+}
+
+/**
  * Registra um aporte (ou retirada, se negativo) no progresso da meta.
  * O progresso nunca fica abaixo de zero.
  *

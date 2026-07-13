@@ -55,6 +55,7 @@ Comentário redundante (`// incrementa i` acima de `i++`) e código óbvio de UI
 - **Mudança de schema = nova migration** em `src/db/migrations/` (nunca editar uma já aplicada) + atualização de [docs/DATA_MODEL.md](docs/DATA_MODEL.md).
 - **Mudança de prompt de IA** = registro em [docs/AI_PROMPTS.md](docs/AI_PROMPTS.md) com data e motivo.
 - **Nenhum dado bruto de transação sai do dispositivo** — o `aiService` só envia agregados (ver [docs/API_CONTRACTS.md](docs/API_CONTRACTS.md)).
+- **Toda função em `utils/`** e a lógica de aplicação de migrations em `db/applyMigrations.ts` **levam teste unitário** (`npm run test`, vitest). `expo-sqlite` é módulo nativo e não roda em vitest puro — testar código que depende dele exige isolar a lógica pura num arquivo sem nenhum import de `expo-sqlite` (nem indireto) e testá-la contra um fake em memória (ver `src/db/applyMigrations.ts`/`.test.ts` como referência), não mockar o módulo nativo.
 - `npm run typecheck` limpo antes de todo commit.
 
 ## Commits

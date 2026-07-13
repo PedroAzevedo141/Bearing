@@ -1,16 +1,30 @@
+// Side-effect obrigatório do react-native-gesture-handler — precisa ser o
+// primeiro import do arquivo de entrada (ver docs do pacote).
+import 'react-native-gesture-handler';
+import '../global.css';
+
 /**
- * Layout raiz do app. Única responsabilidade: a trava biométrica.
+ * Layout raiz do app. Trava biométrica na abertura + os providers globais
+ * (gesture handler pro swipe-to-delete/editar, tema do Paper).
  *
  * Como não existe servidor guardando os dados, a biometria na abertura é a
  * única camada de proteção possível (docs/adr/0001-local-first-architecture.md).
  * O conteúdo só monta depois de `authenticateAsync` retornar sucesso; se o
  * aparelho não tiver biometria/PIN configurado, o app abre destravado.
+ *
+ * Relacionado: docs/adr/0005-design-system-nativewind-paper.md,
+ * docs/adr/0006-padrao-crud-editar-excluir.md
  */
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Button, StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { Button, PaperProvider } from 'react-native-paper';
+
+import { paperTheme } from '../src/theme/paperTheme';
 
 type LockState = 'checking' | 'locked' | 'unlocked';
 
@@ -36,35 +50,31 @@ export default function RootLayout() {
     authenticate();
   }, [authenticate]);
 
-  if (lockState !== 'unlocked') {
-    return (
-      <View style={styles.lockScreen}>
-        <Text style={styles.lockTitle}>Bearing</Text>
-        <Text style={styles.lockSubtitle}>Seus dados financeiros estão protegidos.</Text>
-        {lockState === 'locked' ? (
-          <Button title="Tentar de novo" onPress={authenticate} />
-        ) : null}
-      </View>
-    );
-  }
-
   return (
-    <>
-      <StatusBar style="auto" />
-      <Stack screenOptions={{ headerShown: false }} />
-    </>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <PaperProvider
+        theme={paperTheme}
+        settings={{ icon: (props) => <MaterialCommunityIcons {...props} /> }}
+      >
+        {lockState !== 'unlocked' ? (
+          <View className="flex-1 items-center justify-center gap-3 bg-background p-6">
+            <Text className="text-3xl font-bold text-neutral-900">Bearing</Text>
+            <Text className="text-center text-base text-muted">
+              Seus dados financeiros estão protegidos.
+            </Text>
+            {lockState === 'locked' ? (
+              <Button mode="contained" onPress={authenticate}>
+                Tentar de novo
+              </Button>
+            ) : null}
+          </View>
+        ) : (
+          <>
+            <StatusBar style="auto" />
+            <Stack screenOptions={{ headerShown: false }} />
+          </>
+        )}
+      </PaperProvider>
+    </GestureHandlerRootView>
   );
 }
-
-const styles = StyleSheet.create({
-  lockScreen: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F5F5F2',
-    gap: 12,
-    padding: 24,
-  },
-  lockTitle: { fontSize: 28, fontWeight: '700', color: '#222222' },
-  lockSubtitle: { fontSize: 15, color: '#666666', textAlign: 'center' },
-});

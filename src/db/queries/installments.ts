@@ -80,6 +80,37 @@ export async function createInstallmentPurchase(
 }
 
 /**
+ * Atualiza os campos editáveis de uma compra parcelada existente.
+ *
+ * @param id - ID da compra.
+ * @param data - Novos valores dos campos (mesmo shape de `createInstallmentPurchase`).
+ * @throws Se `installment_count < 1` ou `current_installment < 1` — mesma
+ *   validação defensiva de `createInstallmentPurchase`.
+ */
+export async function updateInstallmentPurchase(
+  id: string,
+  data: NewInstallmentPurchase
+): Promise<void> {
+  if (data.installment_count < 1 || data.current_installment < 1) {
+    throw new Error('Parcelas devem ser >= 1');
+  }
+  const db = await getDb();
+  await db.runAsync(
+    `UPDATE installment_purchases
+     SET name = ?, tag_id = ?, total_amount_cents = ?, installment_count = ?,
+         current_installment = ?, first_due_date = ?
+     WHERE id = ?`,
+    data.name,
+    data.tag_id,
+    data.total_amount_cents,
+    data.installment_count,
+    data.current_installment,
+    data.first_due_date,
+    id
+  );
+}
+
+/**
  * Avança a compra para a próxima parcela (ex: quando a fatura fecha).
  * Não passa de `installment_count` — compra quitada fica estável.
  *
