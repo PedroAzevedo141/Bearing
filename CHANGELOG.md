@@ -22,6 +22,10 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 - Edição de transações, compras parceladas e metas, reaproveitando o mesmo formulário de criação (`mode: 'create' | 'edit'`) — ver ADR-0006.
 - Exclusão com confirmação (`ConfirmDialog`) e gesto de swipe (`SwipeableRow`, revela "Editar"/"Excluir") em todas as listas — substitui o antigo long-press.
 - Testes automatizados (`vitest`, `npm run test`): `src/utils/money.test.ts` e `src/db/applyMigrations.test.ts` (runner de migrations extraído pra `src/db/applyMigrations.ts`, testável sem o módulo nativo `expo-sqlite`).
+- Importação de extratos com OCR Local: Integração do hook com Cloudflare Worker pra processar dados, matching customizado pra compras parceladas usando distância/semelhança no nome e aprovação de usuário (revisão humana obrigatória).
+- Orçamentos Mensais: Limites por tag visíveis na aba Rotação e emissão de alerta/push local ao atingir 90% dos gastos previstos no mês.
+- Assinaturas Recorrentes: Gestão de contas que ocorrem todo mês num dia específico, com agendamento de notificação mensal para revisão e adição com 1 clique (pré-preenchimento no formulário de transação).
+- Chat Inteligente: Suporte a histórico de conversas locais usando as tabelas `chat_conversations` e `chat_messages` e chamando a IA para interagir com o fluxo financeiro e orçamento.
 
 ### Corrigido
 

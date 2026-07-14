@@ -69,6 +69,82 @@ Resposta `200`:
 }
 ```
 
+## `POST /ai/chat`
+
+Chat interativo com suporte a tool calls e histórico. O cliente gerencia o histórico e ferramentas locais.
+
+Requisição:
+
+```json
+{
+  "system_prompt": "Você é o Bearing, um assistente financeiro...",
+  "messages": [
+    { "role": "user", "content": "Quais são meus gastos com mercado?" }
+  ]
+}
+```
+
+Resposta `200` (Mesmo formato que a API do Claude):
+
+```json
+{
+  "id": "msg_01...",
+  "type": "message",
+  "role": "assistant",
+  "content": [
+    {
+      "type": "text",
+      "text": "Seus gastos com mercado foram..."
+    }
+  ],
+  "model": "claude-haiku-4-5-20251001",
+  "stop_reason": "end_turn",
+  "stop_sequence": null,
+  "usage": { "input_tokens": 100, "output_tokens": 50 }
+}
+```
+
+Pode retornar `tool_use` no bloco de `content`, exigindo que o app processe e responda com `tool_result`.
+
+## `POST /ai/parse-statement`
+
+Processa o texto bruto extraído via OCR local e retorna itens formatados.
+
+Requisição:
+
+```json
+{
+  "ocr_text": "MERCADO EXTRA 45,00 12/07/2026\nCOMPRA PARCELADA NOTEBOOK 1/6 150,00"
+}
+```
+
+Resposta `200`:
+
+```json
+{
+  "items": [
+    {
+      "description": "MERCADO EXTRA",
+      "amount_cents": 4500,
+      "type": "expense",
+      "occurred_at": 1783814400,
+      "is_installment": false,
+      "installment_current": null,
+      "installment_total": null
+    },
+    {
+      "description": "COMPRA PARCELADA NOTEBOOK",
+      "amount_cents": 15000,
+      "type": "expense",
+      "occurred_at": 1783814400,
+      "is_installment": true,
+      "installment_current": 1,
+      "installment_total": 6
+    }
+  ]
+}
+```
+
 ## Códigos de erro
 
 Toda resposta de erro tem corpo `{ "error": "mensagem" }`.

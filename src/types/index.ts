@@ -11,9 +11,6 @@
 /** Sentido de uma transação: entrada ou saída de dinheiro. */
 export type TransactionType = 'income' | 'expense';
 
-/** Tipos de resultado de IA cacheados localmente. */
-export type AiInsightKind = 'general_tip' | 'goal_plan';
-
 /**
  * Carteira/conta que o usuário mantém (ex: "Carteira", "Conta corrente").
  */
@@ -90,64 +87,57 @@ export interface Goal {
 }
 
 /**
- * Resultado de chamada de IA cacheado localmente, para evitar rechamar o
- * Worker a cada abertura do app.
+ * Conversa de chat com a IA.
  */
-export interface AiInsightCache {
+export interface ChatConversation {
   id: string;
-  kind: AiInsightKind;
-  /** goal_id quando kind = 'goal_plan'; null para dicas gerais. */
-  related_id: string | null;
-  /** Resposta estruturada da IA, serializada em JSON. */
-  payload_json: string;
-  generated_at: number;
+  title: string;
+  created_at: number;
+  updated_at: number;
 }
 
-// ---------------------------------------------------------------------------
-// Contratos do Cloudflare Worker (ver docs/API_CONTRACTS.md)
-// ---------------------------------------------------------------------------
-
-/** Total agregado por tag enviado ao Worker — nunca transações individuais. */
-export interface TagBalance {
-  tag: string;
-  /** Negativo = gasto, positivo = entrada, em centavos. */
-  total_cents: number;
+/**
+ * Mensagem em uma conversa de chat.
+ */
+export interface ChatMessage {
+  id: string;
+  conversation_id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  created_at: number;
 }
 
-/** Corpo de `POST /ai/insights`. */
-export interface AiInsightRequest {
-  period_days: number;
-  balance_by_tag: TagBalance[];
-  net_flow_cents: number;
+/**
+ * Orçamento mensal por tag.
+ */
+export interface Budget {
+  id: string;
+  tag_id: string;
+  limit_cents: number;
+  created_at: number;
 }
 
-/** Resposta de `POST /ai/insights`. */
-export interface AiInsightResponse {
-  insight: string;
-  generated_at: number;
+/**
+ * Assinatura/transação recorrente.
+ */
+export interface RecurringTransaction {
+  id: string;
+  name: string;
+  amount_cents: number;
+  day_of_month: number;
+  tag_id: string | null;
+  created_at: number;
 }
 
-/** Corpo de `POST /ai/goal-plan`. */
-export interface GoalPlanRequest {
-  goal: {
-    name: string;
-    target_cents: number;
-    current_cents: number;
-    /** Unix timestamp (segundos), opcional. */
-    deadline: number | null;
-  };
-  monthly_capacity_cents: number;
-}
-
-/** Um passo do plano de ação sugerido pela IA. */
-export interface GoalPlanStep {
-  order: number;
+/**
+ * Item processado pelo Worker após envio do extrato OCR.
+ */
+export interface ParsedStatementItem {
   description: string;
-}
-
-/** Resposta de `POST /ai/goal-plan` — JSON tipado via structured output. */
-export interface GoalPlanResponse {
-  steps: GoalPlanStep[];
-  suggested_monthly_cents: number;
-  estimated_months: number;
+  amount_cents: number;
+  type: TransactionType;
+  occurred_at: number;
+  is_installment: boolean;
+  installment_current: number | null;
+  installment_total: number | null;
 }

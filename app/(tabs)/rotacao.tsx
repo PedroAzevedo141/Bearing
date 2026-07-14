@@ -13,7 +13,10 @@ import { SwipeableRow } from '../../src/components/SwipeableRow';
 import { TransactionListItem } from '../../src/components/TransactionListItem';
 import { listTags } from '../../src/db/queries/tags';
 import { useTransactions } from '../../src/hooks/useTransactions';
+import { useBudgets } from '../../src/hooks/useBudgets';
 import type { Tag, Transaction } from '../../src/types';
+import { router } from 'expo-router';
+import { Button } from 'react-native-paper';
 
 /** Janela padrão da aba: últimos 30 dias. */
 const PERIOD_DAYS = 30;
@@ -21,6 +24,7 @@ const PERIOD_DAYS = 30;
 export default function RotacaoScreen() {
   const { transactions, netFlowCents, addTransaction, editTransaction, removeTransaction } =
     useTransactions(PERIOD_DAYS);
+  const { budgets } = useBudgets();
 
   const [tags, setTags] = useState<Tag[]>([]);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -47,6 +51,43 @@ export default function RotacaoScreen() {
       <View className="items-center py-5">
         <Text className="text-sm text-muted">Saldo dos últimos {PERIOD_DAYS} dias</Text>
         <MoneyText cents={netFlowCents} style={{ fontSize: 32, marginTop: 4 }} />
+        
+        <View className="flex-row gap-2 mt-4 px-4 justify-center flex-wrap">
+          <Button mode="outlined" icon="camera" onPress={() => router.push('/transactions/import')}>
+            Extrato
+          </Button>
+          <Button mode="outlined" icon="chart-donut" onPress={() => router.push('/orcamento/manage')}>
+            Orçamento
+          </Button>
+          <Button mode="outlined" icon="calendar-sync" onPress={() => router.push('/assinaturas')}>
+            Assinaturas
+          </Button>
+        </View>
+
+        {budgets.length > 0 && (
+          <View className="w-full px-4 mt-4">
+            <Text className="text-xs font-bold text-neutral-500 uppercase mb-2">Orçamento do Mês</Text>
+            {budgets.map((b) => {
+              const progress = Math.min(b.spentCents / b.limit_cents, 1);
+              return (
+                <View key={b.id} className="mb-2">
+                  <View className="flex-row justify-between mb-1">
+                    <Text className="text-sm text-neutral-800">{b.tagName}</Text>
+                    <Text className="text-xs text-neutral-500">
+                      {(b.spentCents / 100).toFixed(2)} / {(b.limit_cents / 100).toFixed(2)}
+                    </Text>
+                  </View>
+                  <View className="h-2 w-full bg-neutral-200 rounded-full overflow-hidden">
+                    <View 
+                      style={{ width: `${progress * 100}%`, backgroundColor: progress >= 0.9 ? '#D32F2F' : (b.tagColor || '#2E86AB') }} 
+                      className="h-full rounded-full" 
+                    />
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
       </View>
 
       <FlatList

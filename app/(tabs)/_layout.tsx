@@ -1,6 +1,6 @@
 /**
  * Barra de abas — as quatro áreas funcionais do app (rotação, parcelas,
- * dicas de IA e metas). Ícones de texto/emoji no MVP para não puxar
+ * conversas e metas). Ícones de texto/emoji no MVP para não puxar
  * biblioteca de ícones.
  */
 import { Tabs } from 'expo-router';
@@ -36,10 +36,11 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="dicas"
+        name="chat"
         options={{
-          title: 'Dicas',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="💡" focused={focused} />,
+          title: 'Conversas',
+          headerShown: false,
+          tabBarIcon: ({ focused }) => <TabIcon emoji="💬" focused={focused} />,
         }}
       />
       <Tabs.Screen

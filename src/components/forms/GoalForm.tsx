@@ -62,6 +62,7 @@ export function GoalForm({ mode, initialGoal, onSubmit, onCancel }: GoalFormProp
       <TextInput
         mode="outlined"
         label="Valor-alvo (ex: 5000,00)"
+        left={<TextInput.Affix text="R$" />}
         keyboardType="decimal-pad"
         value={target}
         onChangeText={setTarget}

@@ -12,7 +12,6 @@ import { confirmDestructive } from '../../src/components/ConfirmDialog';
 import { GoalForm } from '../../src/components/forms/GoalForm';
 import { GoalCard } from '../../src/components/GoalCard';
 import { SwipeableRow } from '../../src/components/SwipeableRow';
-import { useGoalPlan } from '../../src/hooks/useAiInsight';
 import { useGoals } from '../../src/hooks/useGoals';
 import { colors } from '../../src/theme/colors';
 import type { Goal } from '../../src/types';
@@ -26,12 +25,10 @@ export default function MetasScreen() {
     () => goals.find((g) => g.id === selectedGoalId) ?? null,
     [goals, selectedGoalId]
   );
-  const plan = useGoalPlan(selectedGoal);
 
   const [showForm, setShowForm] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [contribution, setContribution] = useState('');
-  const [capacity, setCapacity] = useState('');
 
   async function handleContribute() {
     const cents = parseCents(contribution);
@@ -40,15 +37,6 @@ export default function MetasScreen() {
     }
     await contribute(selectedGoal.id, cents);
     setContribution('');
-  }
-
-  async function handleGeneratePlan() {
-    const capacityCents = parseCents(capacity);
-    if (capacityCents === null || capacityCents <= 0) {
-      Alert.alert('Capacidade mensal', 'Informe quanto você consegue guardar por mês.');
-      return;
-    }
-    await plan.generate(capacityCents);
   }
 
   function confirmDelete(id: string) {
@@ -95,6 +83,7 @@ export default function MetasScreen() {
                 <TextInput
                   mode="outlined"
                   label="Aporte (ex: 200,00)"
+                  left={<TextInput.Affix text="R$" />}
                   keyboardType="decimal-pad"
                   value={contribution}
                   onChangeText={setContribution}
@@ -104,40 +93,6 @@ export default function MetasScreen() {
                   Aportar
                 </Button>
               </View>
-
-              <View className="flex-row items-center gap-2">
-                <TextInput
-                  mode="outlined"
-                  label="Quanto guarda por mês?"
-                  keyboardType="decimal-pad"
-                  value={capacity}
-                  onChangeText={setCapacity}
-                  style={{ flex: 1 }}
-                />
-                <Button mode="contained" onPress={handleGeneratePlan} disabled={plan.loading}>
-                  Plano IA
-                </Button>
-              </View>
-
-              {plan.loading ? <ActivityIndicator style={{ marginVertical: 8 }} /> : null}
-              {plan.error ? (
-                <Text style={{ color: colors.negative }} className="text-sm">
-                  {plan.error}
-                </Text>
-              ) : null}
-              {plan.data ? (
-                <View className="mt-2 gap-1.5">
-                  <Text style={{ color: colors.primary }} className="text-sm font-semibold">
-                    Sugestão: {formatCents(plan.data.suggested_monthly_cents)}/mês · ~
-                    {plan.data.estimated_months} meses
-                  </Text>
-                  {plan.data.steps.map((step) => (
-                    <Text key={step.order} className="text-sm leading-5 text-neutral-800">
-                      {step.order}. {step.description}
-                    </Text>
-                  ))}
-                </View>
-              ) : null}
             </View>
           ) : null
         }

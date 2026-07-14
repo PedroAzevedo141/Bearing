@@ -48,6 +48,18 @@ Metas financeiras com progresso manual (`current_amount_cents`, atualizado por a
 
 Resultado das chamadas de IA, cacheado localmente para não rechamar a API (que custa dinheiro) a cada abertura do app. `kind` distingue dica geral (`general_tip`) de plano de meta (`goal_plan`, com `related_id` = id da meta). `payload_json` guarda a resposta estruturada serializada — o cache não impõe schema porque o formato pertence ao contrato do Worker ([API_CONTRACTS.md](API_CONTRACTS.md)). Validade de 24h, aplicada na leitura ([src/db/queries/aiCache.ts](../src/db/queries/aiCache.ts)).
 
+### `chat_conversations` e `chat_messages`
+
+Armazenam o histórico de chat com a IA. O título da conversa (`title`) é gerado localmente cortando a primeira mensagem do usuário, para evitar custos com uma chamada de IA apenas para gerar título. O limite de histórico enviado para a IA é imposto por conversa, reduzindo uso de tokens em conversas longas.
+
+### `budgets`
+
+Orçamento mensal definido para uma tag específica. É recorrente por padrão — não é atrelado a um mês específico. A checagem de progresso soma os gastos do mês corrente dessa tag e compara com `limit_cents`.
+
+### `recurring_transactions`
+
+Assinaturas ou transações recorrentes. Armazena o valor, nome, tag e `day_of_month` (1 a 31). O app usa notificações locais para avisar o usuário no dia do mês correspondente; ao abrir a notificação, o usuário aprova e gera a transação real. Nunca criamos transações automaticamente, garantindo a revisão humana.
+
 ## Migrations
 
 Runner próprio em [src/db/index.ts](../src/db/index.ts) usando `PRAGMA user_version` como marcador — sem dependência extra para uma necessidade simples. Cada migration roda dentro de uma transação: ou aplica inteira, ou o banco fica na versão anterior consistente.
@@ -56,5 +68,8 @@ Runner próprio em [src/db/index.ts](../src/db/index.ts) usando `PRAGMA user_ver
 | --- | --- | --- |
 | 1 | `initial-schema` | Todas as tabelas acima |
 | 2 | `add-business-constraints` | `CHECK` em `transactions.amount_cents > 0` e em `installment_purchases` (`total_amount_cents > 0`, `current_installment BETWEEN 1 AND installment_count`) |
+| 3 | `add-chat` | Tabelas `chat_conversations` e `chat_messages` para a aba Chat com IA |
+| 4 | `add-budgets` | Tabela `budgets` para orçamento mensal por tag |
+| 5 | `add-recurring` | Tabela `recurring_transactions` para assinaturas mensais |
 
 **Por que a v2 trava isso no banco além da UI:** validação de formulário evita erro do usuário, mas não evita um bug de código (ex: um cálculo que gere `amount_cents` negativo por engano) gravando dado inconsistente silenciosamente — defesa em profundidade. SQLite não suporta `ALTER TABLE ... ADD CONSTRAINT` nem adicionar `CHECK` a uma coluna existente; a v2 usa o procedimento padrão do SQLite para isso (criar tabela nova com o `CHECK`, copiar os dados, apagar a antiga, renomear) — é o padrão a seguir em qualquer migration futura que precise adicionar `CHECK` a uma tabela já existente.

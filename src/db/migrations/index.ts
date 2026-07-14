@@ -10,7 +10,7 @@
  * - Toda migration nova ganha entrada no CHANGELOG.md e, se mudar o modelo,
  *   atualização em docs/DATA_MODEL.md.
  */
-import { SCHEMA_V1, SCHEMA_V2_CONSTRAINTS } from '../schema';
+import { SCHEMA_V1, SCHEMA_V2_CONSTRAINTS, SCHEMA_V3_CHAT, SCHEMA_V4_BUDGETS, SCHEMA_V5_RECURRING } from '../schema';
 
 /** Uma mudança de schema aplicável de forma idempotente e ordenada. */
 export interface Migration {
@@ -26,4 +26,7 @@ export interface Migration {
 export const MIGRATIONS: Migration[] = [
   { version: 1, name: 'initial-schema', statements: SCHEMA_V1 },
   { version: 2, name: 'add-business-constraints', statements: SCHEMA_V2_CONSTRAINTS },
+  { version: 3, name: 'add-chat', statements: SCHEMA_V3_CHAT },
+  { version: 4, name: 'add-budgets', statements: SCHEMA_V4_BUDGETS },
+  { version: 5, name: 'add-recurring', statements: SCHEMA_V5_RECURRING },
 ];

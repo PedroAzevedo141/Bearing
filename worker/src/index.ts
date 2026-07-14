@@ -67,6 +67,55 @@ const GOAL_PLAN_SCHEMA = {
   additionalProperties: false,
 } as const;
 
+/** JSON Schema para a resposta estruturada do extrato (OCR). */
+const PARSE_STATEMENT_SCHEMA = {
+  type: 'object',
+  properties: {
+    items: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          description: { type: 'string' },
+          amount_cents: { type: 'integer' },
+          type: { type: 'string', enum: ['income', 'expense'] },
+          occurred_at: { type: 'integer', description: 'Unix timestamp em segundos' },
+          is_installment: { type: 'boolean' },
+          installment_current: { type: 'integer' },
+          installment_total: { type: 'integer' }
+        },
+        required: ['description', 'amount_cents', 'type', 'occurred_at', 'is_installment'],
+        additionalProperties: false
+      }
+    }
+  },
+  required: ['items'],
+  additionalProperties: false
+} as const;
+
+/** Definição das tools disponíveis para o Chat. */
+const CHAT_TOOLS = [
+  {
+    name: 'getGastosPorTag',
+    description: 'Retorna os gastos totais em centavos por tag em um dado mês e ano.',
+    input_schema: {
+      type: 'object',
+      properties: { month: { type: 'integer' }, year: { type: 'integer' } },
+      required: ['month', 'year']
+    }
+  },
+  {
+    name: 'getParcelasAtivas',
+    description: 'Retorna as compras parceladas ainda em aberto.',
+    input_schema: { type: 'object', properties: {} }
+  },
+  {
+    name: 'getMetas',
+    description: 'Retorna o progresso atual de todas as metas financeiras.',
+    input_schema: { type: 'object', properties: {} }
+  }
+];
+
 /** Bindings e secrets disponíveis no Worker (ver wrangler.toml). */
 export interface Env {
   /** Chave da Claude API — `wrangler secret put ANTHROPIC_API_KEY`. */
@@ -93,6 +142,17 @@ interface GoalPlanBody {
     deadline: number | null;
   };
   monthly_capacity_cents: number;
+}
+
+/** Corpo esperado em POST /ai/chat. */
+interface ChatBody {
+  system_prompt: string;
+  messages: Anthropic.MessageParam[];
+}
+
+/** Corpo esperado em POST /ai/parse-statement. */
+interface ParseStatementBody {
+  ocr_text: string;
 }
 
 /** Resposta JSON com os headers padrão. */
@@ -140,6 +200,22 @@ function ensureGoalPlanBody(body: unknown): GoalPlanBody | null {
     typeof b.goal.target_cents !== 'number' ||
     typeof b.goal.current_cents !== 'number'
   ) {
+    return null;
+  }
+  return b;
+}
+
+function ensureChatBody(body: unknown): ChatBody | null {
+  const b = body as ChatBody;
+  if (!b || typeof b.system_prompt !== 'string' || !Array.isArray(b.messages)) {
+    return null;
+  }
+  return b;
+}
+
+function ensureParseStatementBody(body: unknown): ParseStatementBody | null {
+  const b = body as ParseStatementBody;
+  if (!b || typeof b.ocr_text !== 'string') {
     return null;
   }
   return b;
@@ -212,6 +288,42 @@ Capacidade mensal de poupança (centavos): ${body.monthly_capacity_cents}`,
   return json(JSON.parse(firstText(message.content)));
 }
 
+/**
+ * POST /ai/chat — Chat interativo com suporte a tool calls.
+ * O app envia o histórico (mensagens e tool results) e o worker repassa.
+ */
+async function handleChat(client: Anthropic, body: ChatBody): Promise<Response> {
+  const message = await client.messages.create({
+    model: MODEL,
+    max_tokens: 1024,
+    system: body.system_prompt,
+    tools: CHAT_TOOLS as any,
+    messages: body.messages,
+  });
+
+  return json(message); // Repassa a resposta completa da API, que pode incluir tool_use ou message
+}
+
+/**
+ * POST /ai/parse-statement — Classifica texto de extrato usando structured output.
+ */
+async function handleParseStatement(client: Anthropic, body: ParseStatementBody): Promise<Response> {
+  const message = await client.messages.create({
+    model: MODEL,
+    max_tokens: 1024,
+    system: 'Extraia os itens do extrato fornecido. A data deve ser o Unix Timestamp. Sempre classifique se é parcelamento ou não.',
+    output_config: { format: { type: 'json_schema', schema: PARSE_STATEMENT_SCHEMA } },
+    messages: [
+      {
+        role: 'user',
+        content: body.ocr_text,
+      },
+    ],
+  });
+
+  return json(JSON.parse(firstText(message.content)));
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     if (request.method !== 'POST') {
@@ -248,6 +360,14 @@ export default {
       if (path === '/ai/goal-plan') {
         const parsed = ensureGoalPlanBody(body);
         return parsed ? await handleGoalPlan(client, parsed) : error(400, 'Corpo inválido');
+      }
+      if (path === '/ai/chat') {
+        const parsed = ensureChatBody(body);
+        return parsed ? await handleChat(client, parsed) : error(400, 'Corpo inválido');
+      }
+      if (path === '/ai/parse-statement') {
+        const parsed = ensureParseStatementBody(body);
+        return parsed ? await handleParseStatement(client, parsed) : error(400, 'Corpo inválido');
       }
       return error(404, 'Rota não encontrada');
     } catch (err) {

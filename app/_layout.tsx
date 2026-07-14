@@ -23,6 +23,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Button, PaperProvider } from 'react-native-paper';
+import * as Notifications from 'expo-notifications';
+import { router } from 'expo-router';
 
 import { paperTheme } from '../src/theme/paperTheme';
 
@@ -49,6 +51,18 @@ export default function RootLayout() {
   useEffect(() => {
     authenticate();
   }, [authenticate]);
+
+  useEffect(() => {
+    const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+      const data = response.notification.request.content.data;
+      if (data?.action === 'recurring_prompt' && data?.recurring_id) {
+        setTimeout(() => {
+          router.push(`/assinaturas/confirm/${data.recurring_id}`);
+        }, 500); // pequeno delay para garantir que a navegação esteja pronta após desbloqueio
+      }
+    });
+    return () => subscription.remove();
+  }, []);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

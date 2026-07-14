@@ -82,6 +82,7 @@ export function TransactionForm({
       <TextInput
         mode="outlined"
         label="Valor (ex: 45,90)"
+        left={<TextInput.Affix text="R$" />}
         keyboardType="decimal-pad"
         value={amount}
         onChangeText={setAmount}
