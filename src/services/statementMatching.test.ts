@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isNameSimilar, findMatchingInstallment } from './statementService';
+import { isNameSimilar, findMatchingInstallment } from './statementMatching';
 import type { ParsedStatementItem, InstallmentPurchase } from '../types';
 
 describe('statementService', () => {
@@ -28,6 +28,7 @@ describe('statementService', () => {
       {
         id: '1',
         name: 'Notebook Dell',
+        tag_id: null,
         total_amount_cents: 18000, // 6x 30.00
         installment_count: 6,
         current_installment: 1,
@@ -37,6 +38,7 @@ describe('statementService', () => {
       {
         id: '2',
         name: 'Mercado Livre',
+        tag_id: null,
         total_amount_cents: 20000, // 4x 50.00
         installment_count: 4,
         current_installment: 2,

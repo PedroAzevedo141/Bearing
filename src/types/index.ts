@@ -11,6 +11,9 @@
 /** Sentido de uma transação: entrada ou saída de dinheiro. */
 export type TransactionType = 'income' | 'expense';
 
+/** Tipos de resultado de IA cacheados localmente. */
+export type AiInsightKind = 'general_tip' | 'goal_plan';
+
 /**
  * Carteira/conta que o usuário mantém (ex: "Carteira", "Conta corrente").
  */
@@ -131,6 +134,10 @@ export interface RecurringTransaction {
 
 /**
  * Item processado pelo Worker após envio do extrato OCR.
+ *
+ * Para itens com `is_installment: true`, `amount_cents` é o valor de **uma**
+ * parcela (a cobrança que aparece neste extrato) — o total da compra é
+ * `amount_cents * installment_total`. Ver docs/API_CONTRACTS.md.
  */
 export interface ParsedStatementItem {
   description: string;
@@ -140,4 +147,113 @@ export interface ParsedStatementItem {
   is_installment: boolean;
   installment_current: number | null;
   installment_total: number | null;
+}
+
+/** Resposta de `POST /ai/parse-statement`. */
+export interface ParseStatementResponse {
+  items: ParsedStatementItem[];
+}
+
+/** Resposta da extração temporária de texto de um PDF de extrato. */
+export interface PdfStatementExtractionResponse {
+  extracted_text: string;
+}
+
+/**
+ * Resultado de chamada de IA cacheado localmente, para evitar rechamar o
+ * Worker a cada abertura do app.
+ */
+export interface AiInsightCache {
+  id: string;
+  kind: AiInsightKind;
+  /** goal_id quando kind = 'goal_plan'; null para dicas gerais. */
+  related_id: string | null;
+  /** Resposta estruturada da IA, serializada em JSON. */
+  payload_json: string;
+  generated_at: number;
+}
+
+// ---------------------------------------------------------------------------
+// Contratos do Cloudflare Worker (ver docs/API_CONTRACTS.md)
+// ---------------------------------------------------------------------------
+
+/** Total agregado por tag enviado ao Worker — nunca transações individuais. */
+export interface TagBalance {
+  tag: string;
+  /** Negativo = gasto, positivo = entrada, em centavos. */
+  total_cents: number;
+}
+
+/** Corpo de `POST /ai/insights`. */
+export interface AiInsightRequest {
+  period_days: number;
+  balance_by_tag: TagBalance[];
+  net_flow_cents: number;
+}
+
+/** Resposta de `POST /ai/insights`. */
+export interface AiInsightResponse {
+  insight: string;
+  generated_at: number;
+}
+
+/** Corpo de `POST /ai/goal-plan`. */
+export interface GoalPlanRequest {
+  goal: {
+    name: string;
+    target_cents: number;
+    current_cents: number;
+    /** Unix timestamp (segundos), opcional. */
+    deadline: number | null;
+  };
+  monthly_capacity_cents: number;
+}
+
+/** Um passo do plano de ação sugerido pela IA. */
+export interface GoalPlanStep {
+  order: number;
+  description: string;
+}
+
+/** Resposta de `POST /ai/goal-plan` — JSON tipado via structured output. */
+export interface GoalPlanResponse {
+  steps: GoalPlanStep[];
+  suggested_monthly_cents: number;
+  estimated_months: number;
+}
+
+/**
+ * Bloco de conteúdo trocado com a Claude API no chat. Subconjunto dos tipos
+ * da Anthropic usado pelo client no loop de tool use (o SDK completo só
+ * existe no Worker).
+ */
+export type ChatContentBlock =
+  | { type: 'text'; text: string }
+  | { type: 'tool_use'; id: string; name: string; input: unknown }
+  | { type: 'tool_result'; tool_use_id: string; content: string; is_error?: boolean };
+
+/**
+ * Mensagem no formato que o Worker `/ai/chat` repassa à Claude API
+ * (Anthropic `MessageParam`). `content` é texto simples nas mensagens do
+ * usuário digitadas na UI, ou uma lista de blocos durante o loop de tools.
+ */
+export interface ChatApiMessage {
+  role: 'user' | 'assistant';
+  content: string | ChatContentBlock[];
+}
+
+/** Corpo de `POST /ai/chat`. */
+export interface ChatRequest {
+  /** System prompt já montado com o contexto financeiro fresco. */
+  system_prompt: string;
+  /** Histórico da conversa (últimas N mensagens + blocos de tool). */
+  messages: ChatApiMessage[];
+}
+
+/**
+ * Resposta de `POST /ai/chat` — a `Message` bruta da Claude API; o client só
+ * lê `content` (pode conter blocos `text` e/ou `tool_use`).
+ */
+export interface ChatResponse {
+  content: ChatContentBlock[];
 }

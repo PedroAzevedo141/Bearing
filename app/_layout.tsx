@@ -22,7 +22,7 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Button, PaperProvider } from 'react-native-paper';
+import { ActivityIndicator, Button, PaperProvider } from 'react-native-paper';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 
@@ -71,16 +71,28 @@ export default function RootLayout() {
         settings={{ icon: (props) => <MaterialCommunityIcons {...props} /> }}
       >
         {lockState !== 'unlocked' ? (
-          <View className="flex-1 items-center justify-center gap-3 bg-background p-6">
-            <Text className="text-3xl font-bold text-neutral-900">Bearing</Text>
-            <Text className="text-center text-base text-muted">
-              Seus dados financeiros estão protegidos.
+          <View className="flex-1 items-center justify-center bg-ink p-8">
+            <View className="mb-5 h-20 w-20 items-center justify-center rounded-3xl bg-white/10">
+              <MaterialCommunityIcons name="shield-lock-outline" size={38} color="#9EB4FF" />
+            </View>
+            <Text className="text-4xl font-bold tracking-tight text-white">Bearing</Text>
+            <Text className="mt-2 max-w-xs text-center text-base leading-6 text-white/60">
+              Suas finanças protegidas e organizadas no seu aparelho.
             </Text>
             {lockState === 'locked' ? (
-              <Button mode="contained" onPress={authenticate}>
-                Tentar de novo
+              <Button
+                mode="contained"
+                icon="fingerprint"
+                buttonColor="#FFFFFF"
+                textColor="#101828"
+                onPress={authenticate}
+                style={{ marginTop: 24 }}
+              >
+                Desbloquear
               </Button>
-            ) : null}
+            ) : (
+              <ActivityIndicator color="#FFFFFF" style={{ marginTop: 24 }} />
+            )}
           </View>
         ) : (
           <>

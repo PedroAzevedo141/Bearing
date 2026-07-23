@@ -1,31 +1,56 @@
-/**
- * Aba 2 — Compras parceladas: cards com progresso das parcelas e formulário
- * de cadastro/edição. Cadastrar agenda lembretes locais de vencimento;
- * editar/excluir são via swipe em cada card (ver docs/adr/0006).
- */
+/** Compras parceladas, projeção mensal e acompanhamento de progresso. */
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useState } from 'react';
 import { FlatList, KeyboardAvoidingView, Platform, Text, View } from 'react-native';
-import { Button, List } from 'react-native-paper';
+import { FAB, List, Modal, Portal } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { confirmDestructive } from '../../src/components/ConfirmDialog';
+import { EmptyState } from '../../src/components/EmptyState';
 import { InstallmentForm } from '../../src/components/forms/InstallmentForm';
 import { InstallmentCard } from '../../src/components/InstallmentCard';
+import { ScreenHeader } from '../../src/components/ScreenHeader';
 import { SwipeableRow } from '../../src/components/SwipeableRow';
 import { listTags } from '../../src/db/queries/tags';
 import { useInstallments } from '../../src/hooks/useInstallments';
+import { colors } from '../../src/theme/colors';
 import type { InstallmentPurchase, Tag } from '../../src/types';
-import { installmentAmountCents, isInstallmentCompleted } from '../../src/utils/money';
+import {
+  formatCents,
+  installmentAmountCents,
+  isInstallmentCompleted,
+} from '../../src/utils/money';
 
 export default function ParcelasScreen() {
   const { purchases, addPurchase, editPurchase, removePurchase } = useInstallments();
-
   const activePurchases = useMemo(
-    () => purchases.filter((p) => !isInstallmentCompleted(p)),
+    () => purchases.filter((purchase) => !isInstallmentCompleted(purchase)),
     [purchases]
   );
   const completedPurchases = useMemo(
-    () => purchases.filter((p) => isInstallmentCompleted(p)),
+    () => purchases.filter((purchase) => isInstallmentCompleted(purchase)),
     [purchases]
+  );
+  const monthlyTotal = useMemo(
+    () =>
+      activePurchases.reduce(
+        (sum, purchase) =>
+          sum + installmentAmountCents(purchase.total_amount_cents, purchase.installment_count),
+        0
+      ),
+    [activePurchases]
+  );
+  const remainingTotal = useMemo(
+    () =>
+      activePurchases.reduce((sum, purchase) => {
+        const paid = Math.min(purchase.current_installment - 1, purchase.installment_count);
+        return (
+          sum +
+          (purchase.installment_count - paid) *
+            installmentAmountCents(purchase.total_amount_cents, purchase.installment_count)
+        );
+      }, 0),
+    [activePurchases]
   );
 
   const [tags, setTags] = useState<Tag[]>([]);
@@ -35,7 +60,13 @@ export default function ParcelasScreen() {
   useEffect(() => {
     listTags().then(setTags);
   }, [purchases]);
-  const tagNameById = useMemo(() => new Map(tags.map((t) => [t.id, t.name])), [tags]);
+
+  const tagNameById = useMemo(() => new Map(tags.map((tag) => [tag.id, tag.name])), [tags]);
+
+  function closeForm() {
+    setShowForm(false);
+    setEditingPurchase(null);
+  }
 
   function confirmDelete(id: string) {
     confirmDestructive({
@@ -67,55 +98,124 @@ export default function ParcelasScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      className="flex-1 bg-background"
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <FlatList
-        data={activePurchases}
-        keyExtractor={(item) => item.id}
-        contentContainerClassName="py-2"
-        renderItem={({ item }) => renderCard(item)}
-        ListEmptyComponent={
-          <Text className="mt-8 px-6 text-center text-muted">
-            Nenhuma compra parcelada cadastrada.
-          </Text>
-        }
-        ListFooterComponent={
-          completedPurchases.length > 0 ? (
-            <List.Accordion
-              title={`Concluídas (${completedPurchases.length})`}
-              left={(props) => <List.Icon {...props} icon="check-circle-outline" />}
-            >
-              {completedPurchases.map(renderCard)}
-            </List.Accordion>
-          ) : null
-        }
-      />
-
-      {editingPurchase ? (
-        <InstallmentForm
-          key={editingPurchase.id}
-          mode="edit"
-          initialPurchase={editingPurchase}
-          initialTagName={
-            editingPurchase.tag_id ? (tagNameById.get(editingPurchase.tag_id) ?? null) : null
+    <SafeAreaView className="flex-1 bg-background" edges={['top']}>
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <FlatList
+          data={activePurchases}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{ paddingBottom: 104 }}
+          renderItem={({ item }) => renderCard(item)}
+          ListHeaderComponent={
+            <View>
+              <ScreenHeader
+                eyebrow="Planejamento"
+                title="Parcelas"
+                description="Veja quanto está comprometido e o que falta quitar."
+                icon="credit-card-clock-outline"
+              />
+              <View className="mx-5 mb-5 flex-row gap-3">
+                <View className="flex-1 rounded-3xl bg-ink p-4">
+                  <MaterialCommunityIcons name="calendar-month-outline" size={21} color="#9EB4FF" />
+                  <Text className="mt-4 text-xs text-white/60">Por mês</Text>
+                  <Text className="mt-1 text-lg font-bold text-white">{formatCents(monthlyTotal)}</Text>
+                </View>
+                <View className="flex-1 rounded-3xl border border-border bg-surface p-4">
+                  <MaterialCommunityIcons name="timer-sand" size={21} color={colors.accent} />
+                  <Text className="mt-4 text-xs text-muted">A quitar</Text>
+                  <Text className="mt-1 text-lg font-bold text-ink">{formatCents(remainingTotal)}</Text>
+                </View>
+              </View>
+              <View className="mb-2 flex-row items-end justify-between px-5">
+                <View>
+                  <Text className="text-lg font-bold text-ink">Compras ativas</Text>
+                  <Text className="text-xs text-muted">Acompanhe o avanço de cada compra</Text>
+                </View>
+                <Text className="text-xs font-bold text-primary">{activePurchases.length} ativas</Text>
+              </View>
+            </View>
           }
-          onSubmit={async (input) => {
-            await editPurchase(editingPurchase.id, input);
-            setEditingPurchase(null);
-          }}
-          onCancel={() => setEditingPurchase(null)}
+          ListEmptyComponent={
+            <EmptyState
+              icon="credit-card-plus-outline"
+              title="Nenhuma parcela em aberto"
+              description="Cadastre uma compra para enxergar o impacto mensal e quanto ainda falta pagar."
+              actionLabel="Cadastrar compra"
+              onAction={() => setShowForm(true)}
+            />
+          }
+          ListFooterComponent={
+            completedPurchases.length > 0 ? (
+              <View className="mx-5 mt-4 overflow-hidden rounded-2xl border border-border bg-surface">
+                <List.Accordion
+                  title={`Concluídas (${completedPurchases.length})`}
+                  description="Compras que já chegaram ao fim"
+                  left={(props) => <List.Icon {...props} icon="check-circle-outline" />}
+                >
+                  {completedPurchases.map(renderCard)}
+                </List.Accordion>
+              </View>
+            ) : null
+          }
         />
-      ) : showForm ? (
-        <InstallmentForm mode="create" onSubmit={addPurchase} onCancel={() => setShowForm(false)} />
-      ) : (
-        <View className="border-t border-border bg-surface p-4">
-          <Button mode="contained" onPress={() => setShowForm(true)}>
-            Nova compra parcelada
-          </Button>
-        </View>
-      )}
-    </KeyboardAvoidingView>
+
+        <FAB
+          icon="plus"
+          label="Nova compra"
+          onPress={() => setShowForm(true)}
+          style={{ position: 'absolute', right: 20, bottom: 18 }}
+        />
+
+        <Portal>
+          <Modal
+            visible={showForm || editingPurchase !== null}
+            onDismiss={closeForm}
+            contentContainerStyle={{
+              margin: 20,
+              borderRadius: 24,
+              overflow: 'hidden',
+              backgroundColor: colors.surface,
+            }}
+          >
+            <View className="px-4 pt-4">
+              <Text className="text-xl font-bold text-ink">
+                {editingPurchase ? 'Editar compra' : 'Nova compra parcelada'}
+              </Text>
+              <Text className="mt-1 text-sm text-muted">
+                O Bearing calcula o valor mensal e acompanha o progresso.
+              </Text>
+            </View>
+            {editingPurchase ? (
+              <InstallmentForm
+                key={editingPurchase.id}
+                mode="edit"
+                initialPurchase={editingPurchase}
+                initialTagName={
+                  editingPurchase.tag_id
+                    ? (tagNameById.get(editingPurchase.tag_id) ?? null)
+                    : null
+                }
+                onSubmit={async (input) => {
+                  await editPurchase(editingPurchase.id, input);
+                  closeForm();
+                }}
+                onCancel={closeForm}
+              />
+            ) : (
+              <InstallmentForm
+                mode="create"
+                onSubmit={async (input) => {
+                  await addPurchase(input);
+                  closeForm();
+                }}
+                onCancel={closeForm}
+              />
+            )}
+          </Modal>
+        </Portal>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }

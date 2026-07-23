@@ -1,8 +1,9 @@
 /**
  * aiService.ts
  *
- * Camada de comunicação com o Cloudflare Worker de IA. Nenhum dado bruto de
- * transação sai daqui — sempre agregações (ver docs/API_CONTRACTS.md).
+ * Camada de comunicação com o Cloudflare Worker de IA. Dicas e chat usam
+ * agregações. PDF bruto só é enviado no fluxo opt-in de importação, depois
+ * de consentimento explícito (ver docs/API_CONTRACTS.md).
  *
  * O cache local (ai_insights_cache) é responsabilidade dos hooks/queries;
  * este módulo só fala HTTP com o Worker.
@@ -11,7 +12,16 @@
  */
 import Constants from 'expo-constants';
 
-import type { AiInsightRequest, AiInsightResponse, GoalPlanRequest, GoalPlanResponse } from '../types';
+import type {
+  AiInsightRequest,
+  AiInsightResponse,
+  ChatRequest,
+  ChatResponse,
+  GoalPlanRequest,
+  GoalPlanResponse,
+  PdfStatementExtractionResponse,
+  ParseStatementResponse,
+} from '../types';
 
 /**
  * Erro de comunicação com o Worker, com o status HTTP preservado para a UI
@@ -96,4 +106,47 @@ export function fetchInsight(summary: AiInsightRequest): Promise<AiInsightRespon
  */
 export function fetchGoalPlan(request: GoalPlanRequest): Promise<GoalPlanResponse> {
   return postToWorker<GoalPlanResponse>('/ai/goal-plan', request);
+}
+
+/**
+ * Envia um turno do chat ao Worker e devolve a resposta bruta da Claude API.
+ *
+ * O contexto financeiro entra no `system_prompt` (montado pelo chamador com
+ * dados agregados — nunca transações individuais). A resposta pode conter
+ * blocos `tool_use`; a execução das tools e a re-chamada são responsabilidade
+ * do hook `useChat`, não deste serviço.
+ *
+ * @param request - System prompt + histórico (últimas mensagens/blocos).
+ * @returns A `Message` da Claude API (só o campo `content` é usado).
+ * @throws {AiServiceError} Ver códigos em docs/API_CONTRACTS.md.
+ */
+export function fetchChat(request: ChatRequest): Promise<ChatResponse> {
+  return postToWorker<ChatResponse>('/ai/chat', request);
+}
+
+/**
+ * Envia o texto de extrato (já revisado pelo usuário na Confirmação 1) ao
+ * Worker e recebe os itens classificados via structured output.
+ *
+ * Este endpoint recebe somente texto. PDFs usam a rota separada de extração;
+ * aqui chega o conteúdo já revisado pelo usuário.
+ *
+ * @param ocrText - Texto do extrato revisado pelo usuário.
+ * @returns Itens classificados (transação avulsa ou parcela).
+ * @throws {AiServiceError} Ver códigos em docs/API_CONTRACTS.md.
+ */
+export function fetchParseStatement(ocrText: string): Promise<ParseStatementResponse> {
+  return postToWorker<ParseStatementResponse>('/ai/parse-statement', { ocr_text: ocrText });
+}
+
+/**
+ * Envia um PDF escolhido e autorizado pelo usuário para extração temporária.
+ * O Worker não persiste o arquivo; devolve somente texto para a primeira revisão.
+ */
+export function fetchExtractStatementPdf(
+  pdfBase64: string
+): Promise<PdfStatementExtractionResponse> {
+  return postToWorker<PdfStatementExtractionResponse>('/ai/extract-statement-pdf', {
+    pdf_base64: pdfBase64,
+  });
 }

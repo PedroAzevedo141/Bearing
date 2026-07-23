@@ -1,53 +1,61 @@
-/**
- * Barra de abas — as quatro áreas funcionais do app (rotação, parcelas,
- * conversas e metas). Ícones de texto/emoji no MVP para não puxar
- * biblioteca de ícones.
- */
+/** Barra de navegação principal do app. */
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Text } from 'react-native';
-
-/** Ícone de aba baseado em emoji, esmaecido quando inativa. */
-function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
-  return <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.4 }}>{emoji}</Text>;
-}
 
 export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerStyle: { backgroundColor: '#F5F5F2' },
-        headerShadowVisible: false,
-        tabBarActiveTintColor: '#2E86AB',
+        headerShown: false,
+        tabBarActiveTintColor: '#315CF5',
+        tabBarInactiveTintColor: '#98A2B3',
+        tabBarHideOnKeyboard: true,
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600', marginTop: 2 },
+        tabBarStyle: {
+          height: 72,
+          paddingTop: 8,
+          paddingBottom: 10,
+          borderTopColor: '#E3E9F2',
+          backgroundColor: '#FFFFFF',
+        },
       }}
     >
       <Tabs.Screen
         name="rotacao"
         options={{
-          title: 'Rotação',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🔄" focused={focused} />,
+          title: 'Resumo',
+          tabBarAccessibilityLabel: 'Resumo financeiro',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="view-dashboard-outline" color={color} size={size} />
+          ),
         }}
       />
       <Tabs.Screen
         name="parcelas"
         options={{
           title: 'Parcelas',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="💳" focused={focused} />,
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="credit-card-clock-outline" color={color} size={size} />
+          ),
         }}
       />
       <Tabs.Screen
         name="chat"
         options={{
-          title: 'Conversas',
-          headerShown: false,
-          tabBarIcon: ({ focused }) => <TabIcon emoji="💬" focused={focused} />,
+          title: 'Assistente',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="message-processing-outline" color={color} size={size} />
+          ),
         }}
       />
       <Tabs.Screen
         name="metas"
         options={{
           title: 'Metas',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🎯" focused={focused} />,
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="target" color={color} size={size} />
+          ),
         }}
       />
     </Tabs>

@@ -1,117 +1,93 @@
 /**
- * src/services/statementService.ts
+ * statementService.ts
  *
- * Lida com o processamento do texto de OCR, chamando a IA para parsear
- * os itens e realizando o matching de parcelas existentes.
+ * Orquestra a importação de extrato: chama o Worker pra classificar o texto
+ * (via aiService — nada de `fetch` aqui) e grava os itens já confirmados pelo
+ * usuário, usando a camada de queries (nada de SQL solto). O casamento de
+ * parcelas é lógica pura em statementMatching.ts (testável sem o banco).
+ *
+ * Relacionado: docs/API_CONTRACTS.md, src/services/statementMatching.ts
  */
-import Constants from 'expo-constants';
-import { ParsedStatementItem, InstallmentPurchase } from '../types';
-import { listInstallmentPurchases } from '../db/queries/installments';
-import { getDb } from '../db';
-import * as Crypto from 'expo-crypto';
+import { fetchParseStatement } from './aiService';
+import { findMatchingInstallment } from './statementMatching';
+import {
+  createInstallmentPurchase,
+  listInstallmentPurchases,
+  updateInstallmentPurchase,
+} from '../db/queries/installments';
+import { createTransaction } from '../db/queries/transactions';
+import type { ParsedStatementItem } from '../types';
 
-const AI_WORKER_URL = Constants.expoConfig?.extra?.aiWorkerUrl ?? '';
-const AI_APP_SECRET = Constants.expoConfig?.extra?.aiAppSecret ?? '';
+export { findMatchingInstallment, isNameSimilar } from './statementMatching';
 
+/**
+ * Classifica o texto de extrato (já revisado na Confirmação 1) em itens.
+ *
+ * @param ocrText - Texto revisado pelo usuário.
+ * @returns Itens classificados, com os campos de parcela normalizados.
+ * @throws {AiServiceError} Ver códigos em docs/API_CONTRACTS.md.
+ */
 export async function parseStatementText(ocrText: string): Promise<ParsedStatementItem[]> {
-  const res = await fetch(`${AI_WORKER_URL}/ai/parse-statement`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-App-Secret': AI_APP_SECRET,
-    },
-    body: JSON.stringify({ ocr_text: ocrText }),
-  });
-
-  if (!res.ok) {
-    throw new Error('Falha ao processar extrato');
-  }
-
-  const json = await res.json();
-  return json.items as ParsedStatementItem[];
+  const { items } = await fetchParseStatement(ocrText);
+  // Garante que os campos de parcela existam (o schema os torna opcionais).
+  return items.map((item) => ({
+    ...item,
+    installment_current: item.installment_current ?? null,
+    installment_total: item.installment_total ?? null,
+  }));
 }
 
 /**
- * Compara se duas strings são parecidas (compartilham palavras significativas).
+ * Grava os itens importados **após a confirmação do usuário** (Confirmação 2).
+ *
+ * - Itens avulsos → `transactions`.
+ * - Parcelas → casa com uma compra existente (`updateInstallmentPurchase`,
+ *   avançando a parcela atual) ou cria uma nova (`createInstallmentPurchase`),
+ *   evitando duplicar a mesma compra a cada extrato mensal.
+ *
+ * @param items - Itens já revisados pelo usuário.
+ * @param accountId - Conta destino das transações avulsas.
  */
-export function isNameSimilar(a: string, b: string): boolean {
-  const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim().split(/\s+/).filter(w => w.length > 2);
-  const wordsA = normalize(a);
-  const wordsB = normalize(b);
-  if (wordsA.length === 0 || wordsB.length === 0) return a.toLowerCase().trim() === b.toLowerCase().trim();
-  
-  // Conta quantas palavras de A estão em B
-  let matches = 0;
-  for (const wA of wordsA) {
-    if (wordsB.includes(wA)) matches++;
-  }
-  // Se pelo menos uma palavra bater e elas tiverem tamanhos similares, ou uma for substring da outra
-  return matches >= 1 || a.toLowerCase().includes(b.toLowerCase()) || b.toLowerCase().includes(a.toLowerCase());
-}
-
-/**
- * Encontra a parcela correspondente para um item extraído.
- */
-export function findMatchingInstallment(
-  item: ParsedStatementItem,
-  activeInstallments: InstallmentPurchase[]
-): InstallmentPurchase | undefined {
-  if (!item.is_installment || !item.installment_total) return undefined;
-
-  const expectedTotal = item.amount_cents * item.installment_total;
-
-  return activeInstallments.find((i) => {
-    // Mesma quantidade de parcelas, total igual (ou muito próximo, caso de arredondamento)
-    const isAmountMatch = Math.abs(i.total_amount_cents - expectedTotal) < 100; // tolerância de R$1 
-    const isCountMatch = i.installment_count === item.installment_total;
-    const isNameMatch = isNameSimilar(i.name, item.description);
-
-    return isAmountMatch && isCountMatch && isNameMatch;
-  });
-}
-
-/**
- * Grava os itens importados após confirmação do usuário.
- * Faz o matching de parcelas para evitar duplicação ou cria novas.
- * Transações normais vão para `transactions`.
- */
-export async function saveParsedItems(items: ParsedStatementItem[], accountId: string) {
-  const db = await getDb();
-  const now = Math.floor(Date.now() / 1000);
-  
-  // Buscar parcelas ativas para matching
+export async function saveParsedItems(
+  items: ParsedStatementItem[],
+  accountId: string
+): Promise<void> {
   const activeInstallments = await listInstallmentPurchases();
 
-  await db.withTransactionAsync(async () => {
-    for (const item of items) {
-      if (item.is_installment && item.installment_current && item.installment_total) {
-        const match = findMatchingInstallment(item, activeInstallments);
-
-        if (match) {
-          // UPDATE na existente
-          // Atualiza o current_installment se for maior
-          if (item.installment_current > match.current_installment) {
-            await db.runAsync(
-              'UPDATE installment_purchases SET current_installment = ? WHERE id = ?',
-              item.installment_current, match.id
-            );
-          }
-        } else {
-          // INSERT nova
-          const id = Crypto.randomUUID();
-          await db.runAsync(
-            'INSERT INTO installment_purchases (id, name, total_amount_cents, installment_count, current_installment, first_due_date, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            id, item.description, item.amount_cents * item.installment_total, item.installment_total, item.installment_current, item.occurred_at, now
-          );
+  for (const item of items) {
+    if (item.is_installment && item.installment_current && item.installment_total) {
+      const match = findMatchingInstallment(item, activeInstallments);
+      if (match) {
+        // Só avança a parcela atual se o extrato estiver à frente do registrado.
+        if (item.installment_current > match.current_installment) {
+          await updateInstallmentPurchase(match.id, {
+            name: match.name,
+            tag_id: match.tag_id,
+            total_amount_cents: match.total_amount_cents,
+            installment_count: match.installment_count,
+            current_installment: item.installment_current,
+            first_due_date: match.first_due_date,
+          });
         }
       } else {
-        // Transação avulsa
-        const id = Crypto.randomUUID();
-        await db.runAsync(
-          'INSERT INTO transactions (id, account_id, amount_cents, type, description, occurred_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-          id, accountId, item.amount_cents, item.type, item.description, item.occurred_at, now
-        );
+        await createInstallmentPurchase({
+          name: item.description,
+          tag_id: null,
+          total_amount_cents: item.amount_cents * item.installment_total,
+          installment_count: item.installment_total,
+          current_installment: item.installment_current,
+          first_due_date: item.occurred_at,
+        });
       }
+    } else {
+      await createTransaction({
+        account_id: accountId,
+        tag_id: null,
+        amount_cents: item.amount_cents,
+        type: item.type,
+        description: item.description,
+        occurred_at: item.occurred_at,
+      });
     }
-  });
+  }
 }

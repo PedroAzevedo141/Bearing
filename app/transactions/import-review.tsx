@@ -1,12 +1,14 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
-import { FlatList, KeyboardAvoidingView, Platform, View, Text } from 'react-native';
+import { Alert, FlatList, KeyboardAvoidingView, Platform, View, Text } from 'react-native';
 import { Button, Checkbox, TextInput, ActivityIndicator } from 'react-native-paper';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { parseStatementText, saveParsedItems } from '../../src/services/statementService';
+import { getOrCreateDefaultAccount } from '../../src/db/queries/accounts';
 import type { ParsedStatementItem } from '../../src/types';
-import { getDb } from '../../src/db'; // Para buscar a conta default, se necessário, ou mockaremos
-import { formatCents, parseCents } from '../../src/utils/money';
+import { centsToAmountInput, parseCents } from '../../src/utils/money';
 import { SwipeableRow } from '../../src/components/SwipeableRow';
+import { colors } from '../../src/theme/colors';
 
 export default function ImportReviewScreen() {
   const { text } = useLocalSearchParams<{ text: string }>();
@@ -37,21 +39,11 @@ export default function ImportReviewScreen() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const db = await getDb();
-      // Obter primeira account
-      const firstAccount = await db.getFirstAsync<{ id: string }>('SELECT id FROM accounts LIMIT 1');
-      let accountId = firstAccount?.id;
-      
-      if (!accountId) {
-        // Fallback: se não tiver account, não deveria acontecer pois é criado implicitamente,
-        // mas só para garantir.
-        throw new Error('Nenhuma conta encontrada');
-      }
-
-      await saveParsedItems(items, accountId);
+      const account = await getOrCreateDefaultAccount();
+      await saveParsedItems(items, account.id);
       router.replace('/rotacao'); // Volta para a Rotação após importar
-    } catch (err: any) {
-      alert(err.message || 'Falha ao salvar itens');
+    } catch {
+      Alert.alert('Não consegui salvar', 'Algo deu errado ao gravar os itens. Tente de novo.');
     } finally {
       setSaving(false);
     }
@@ -70,7 +62,13 @@ export default function ImportReviewScreen() {
   const renderItem = ({ item, index }: { item: ParsedStatementItem; index: number }) => {
     return (
       <SwipeableRow onDelete={() => removeItem(index)}>
-        <View className="p-4 bg-surface border-b border-border gap-2">
+        <View className="mx-5 mb-3 gap-2 rounded-3xl border border-border bg-surface p-4">
+          <View className="mb-1 flex-row items-center justify-between">
+            <Text className="text-xs font-bold uppercase tracking-wider text-primary">
+              Lançamento {index + 1}
+            </Text>
+            <MaterialCommunityIcons name="drag-horizontal-variant" size={20} color={colors.muted} />
+          </View>
           <TextInput
             mode="outlined"
             label="Descrição"
@@ -83,7 +81,7 @@ export default function ImportReviewScreen() {
               label="Valor"
               left={<TextInput.Affix text="R$" />}
               keyboardType="decimal-pad"
-              value={(item.amount_cents / 100).toFixed(2).replace('.', ',')}
+              value={centsToAmountInput(item.amount_cents)}
               onChangeText={(v) => {
                 const cents = parseCents(v);
                 if (cents !== null) updateItem(index, { amount_cents: cents });
@@ -92,6 +90,7 @@ export default function ImportReviewScreen() {
             />
             <Button
               mode={item.type === 'expense' ? 'contained' : 'outlined'}
+              buttonColor={item.type === 'expense' ? colors.negative : undefined}
               onPress={() => updateItem(index, { type: item.type === 'expense' ? 'income' : 'expense' })}
             >
               {item.type === 'expense' ? 'Saída' : 'Entrada'}
@@ -134,7 +133,10 @@ export default function ImportReviewScreen() {
     return (
       <View className="flex-1 items-center justify-center bg-background p-4 gap-4">
         <ActivityIndicator size="large" />
-        <Text className="text-center text-neutral-600">A IA está analisando seu extrato (pode levar alguns segundos)...</Text>
+        <Text className="text-lg font-bold text-ink">Organizando os lançamentos</Text>
+        <Text className="max-w-xs text-center text-sm leading-5 text-muted">
+          A IA está separando valores, datas e parcelas. Isso pode levar alguns segundos.
+        </Text>
       </View>
     );
   }
@@ -142,8 +144,11 @@ export default function ImportReviewScreen() {
   if (error) {
     return (
       <View className="flex-1 items-center justify-center bg-background p-4 gap-4">
-        <Text className="text-negative text-center font-bold text-lg">Erro na IA</Text>
-        <Text className="text-neutral-600 text-center">{error}</Text>
+        <View className="h-14 w-14 items-center justify-center rounded-2xl bg-red-50">
+          <MaterialCommunityIcons name="alert-circle-outline" size={28} color={colors.negative} />
+        </View>
+        <Text className="text-center text-lg font-bold text-negative">Não foi possível analisar</Text>
+        <Text className="text-center text-muted">{error}</Text>
         <Button mode="contained" onPress={() => router.back()}>Voltar e tentar novamente</Button>
       </View>
     );
@@ -151,21 +156,43 @@ export default function ImportReviewScreen() {
 
   return (
     <KeyboardAvoidingView className="flex-1 bg-background" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Stack.Screen options={{ title: 'Revisar (Confirmação 2)' }} />
+      <Stack.Screen
+        options={{
+          title: 'Revisar lançamentos',
+          headerShown: true,
+          headerShadowVisible: false,
+          headerStyle: { backgroundColor: colors.background },
+          headerTintColor: colors.ink,
+        }}
+      />
       <FlatList
         data={items}
         keyExtractor={(_, index) => String(index)}
         renderItem={renderItem}
+        contentContainerStyle={{ paddingBottom: 24 }}
         ListHeaderComponent={
-          <Text className="p-4 text-center text-neutral-600">
-            A IA classificou os itens. Verifique e corrija os valores antes de salvar. Deslize para excluir um item falso.
-          </Text>
+          <View className="px-5 pb-4 pt-3">
+            <Text className="text-xs font-bold uppercase tracking-widest text-primary">
+              Confirmação final
+            </Text>
+            <Text className="mt-1 text-2xl font-bold text-ink">{items.length} lançamentos encontrados</Text>
+            <Text className="mt-1 text-sm leading-5 text-muted">
+              Confira valores e parcelas. Deslize um cartão para excluir o que não pertence ao extrato.
+            </Text>
+          </View>
         }
         ListFooterComponent={
           items.length > 0 ? (
-            <View className="p-4 mb-8">
-              <Button mode="contained" onPress={handleSave} loading={saving} disabled={saving}>
-                Confirmar e Gravar ({items.length} itens)
+            <View className="mx-5 mb-8 mt-2">
+              <Button
+                mode="contained"
+                icon="check"
+                contentStyle={{ height: 50 }}
+                onPress={handleSave}
+                loading={saving}
+                disabled={saving}
+              >
+                Confirmar e gravar {items.length} itens
               </Button>
             </View>
           ) : (
