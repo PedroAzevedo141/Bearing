@@ -26,7 +26,19 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 - Orçamentos Mensais: Limites por tag visíveis na aba Rotação e emissão de alerta/push local ao atingir 90% dos gastos previstos no mês.
 - Assinaturas Recorrentes: Gestão de contas que ocorrem todo mês num dia específico, com agendamento de notificação mensal para revisão e adição com 1 clique (pré-preenchimento no formulário de transação).
 - Chat Inteligente: Suporte a histórico de conversas locais usando as tabelas `chat_conversations` e `chat_messages` e chamando a IA para interagir com o fluxo financeiro e orçamento.
+- ADRs 0007 (importação/OCR), 0008 (assinaturas com confirmação humana) e 0009 (chat com tools no client); prompts novos registrados em `docs/AI_PROMPTS.md`.
+- Importação de extrato por PDF (até 20 MB), com consentimento explícito, extração temporária no Worker e revisão do texto antes da classificação.
+- Componentes compartilhados de cabeçalho e estado vazio para dar consistência às áreas principais.
+
+### Alterado
+
+- Aba **Dicas** (dica diária automática) foi **removida** e substituída pela aba **Chat** — o chat cobre o mesmo caso de uso de forma mais rica (o usuário pergunta o que quiser). O endpoint `/ai/insights` e o cache seguem existindo (usados internamente); só a aba deixou de existir. As 4 abas agora são Rotação, Parcelas, Chat e Metas.
+- Interface principal renovada com navegação por ícones, hierarquia visual mais clara, resumos contextuais, cartões de progresso, formulários em modais e ações rápidas.
 
 ### Corrigido
+
+- Chat: hook fazia `fetch` direto e ignorava o mês/ano da tool `getGastosPorTag`; agora passa pelo `aiService`, é tipado (sem `any`) e a tool consulta o mês pedido. Erro de rede vira estado da tela (Snackbar), não mais mensagem falsa gravada no histórico.
+- Orçamento e Assinaturas travavam o app no Expo Go — os hooks `useBudgets`/`useRecurring` importavam `expo-notifications` direto. Agora as notificações passam pelo `notificationService` (carregamento condicional), como o resto do app.
+- Importação de extrato: OCR nativo travava no Expo Go — agora o módulo é carregado condicionalmente e colar texto é o caminho sempre disponível; a tela de revisão parou de tocar SQL direto (usa a camada de queries).
 
 - `expo-notifications` derrubava o app inteiro ao abrir dentro do Expo Go (SDK 53+ removeu suporte a push remoto do Expo Go, e o próprio import do pacote já tenta se registrar). `notificationService.ts` agora só carrega o módulo fora do Expo Go; dentro dele, lembretes locais degradam para no-op em vez de crashar.

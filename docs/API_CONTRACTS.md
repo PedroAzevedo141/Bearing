@@ -1,6 +1,6 @@
 # Contrato do Worker de IA
 
-O Worker (`worker/`) é a única peça do sistema que fala com o mundo externo. Ele **não persiste nada** — recebe o resumo agregado, repassa pra API da Anthropic e devolve a resposta. O app nunca envia transações individuais; só agregações (garantido em [src/services/aiService.ts](../src/services/aiService.ts) e nas queries de agregação).
+O Worker (`worker/`) é a única peça do sistema que fala com o mundo externo. Ele **não persiste nada** — recebe dados, repassa pra API da Anthropic e devolve a resposta. Dicas e chat usam agregações. A única exceção de documento bruto é a importação voluntária de PDF, precedida por consentimento explícito e limitada a extração temporária.
 
 Implementação: [worker/src/index.ts](../worker/src/index.ts). Prompts: [AI_PROMPTS.md](AI_PROMPTS.md).
 
@@ -106,9 +106,31 @@ Resposta `200` (Mesmo formato que a API do Claude):
 
 Pode retornar `tool_use` no bloco de `content`, exigindo que o app processe e responda com `tool_result`.
 
+## `POST /ai/extract-statement-pdf`
+
+Extrai texto de um PDF de extrato ou fatura. O app aceita somente PDF sem senha de até 20 MB e pede consentimento explícito antes do envio. O Worker não persiste o arquivo.
+
+Requisição:
+
+```json
+{
+  "pdf_base64": "JVBERi0xLjQK..."
+}
+```
+
+Resposta `200`:
+
+```json
+{
+  "extracted_text": "12/07 MERCADO EXTRA -45,00\n13/07 PIX RECEBIDO +120,00"
+}
+```
+
+O texto retornado volta para a Confirmação 1. O usuário pode apagar dados sensíveis e corrigir a transcrição antes de chamar `/ai/parse-statement`.
+
 ## `POST /ai/parse-statement`
 
-Processa o texto bruto extraído via OCR local e retorna itens formatados.
+Processa o texto revisado, vindo de OCR local, PDF ou conteúdo colado, e retorna itens formatados.
 
 Requisição:
 
@@ -144,6 +166,10 @@ Resposta `200`:
   ]
 }
 ```
+
+Para itens com `is_installment: true`, `amount_cents` é o valor de **uma** parcela (a cobrança deste extrato); o total da compra é `amount_cents * installment_total`. **Itens com `is_installment: true` são gravados em `installment_purchases`, não em `transactions`, e alimentam a aba Parcelas já existente — nunca criam tela ou tabela paralela.** Antes de inserir, o app casa o item com uma compra parcelada existente (`findMatchingInstallment`) e apenas avança a parcela atual, evitando duplicar a mesma compra a cada extrato mensal.
+
+O texto vai revisado pelo usuário (Confirmação 1) antes de sair do aparelho, e os itens classificados vão revisados de novo (Confirmação 2) antes de gravar.
 
 ## Códigos de erro
 

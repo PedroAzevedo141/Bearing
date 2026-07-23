@@ -10,7 +10,9 @@ App de controle financeiro pessoal, de uso individual (não compartilhado), que 
 
 ## Decisão
 
-Nenhum dado financeiro sai do dispositivo. A única exceção é o resumo **agregado** (totais por tag + saldo do período) enviado pontualmente para gerar dicas de IA — e mesmo esse resumo não é armazenado em nenhum servidor.
+Dados financeiros ficam no dispositivo. Resumos **agregados** (totais por tag + saldo do período) podem ser enviados pontualmente para gerar dicas de IA e não são armazenados no Worker.
+
+Desde 2026-07-23 há uma segunda exceção, voluntária e visível: o usuário pode autorizar o envio temporário de um PDF de extrato para extração de texto. O arquivo não é persistido pelo Worker, e o texto volta ao aparelho para revisão antes da classificação. O fluxo e as salvaguardas estão detalhados no ADR-0007.
 
 Concretamente:
 

@@ -1,6 +1,6 @@
 # Bearing
 
-App de finanças pessoais **local-first** para iPhone e Android (Expo + TypeScript): rotação do dinheiro, compras parceladas, dicas de IA e metas financeiras. Nenhum dado financeiro sai do dispositivo — só um resumo agregado, pontual e não armazenado, para gerar dicas.
+App de finanças pessoais **local-first** para iPhone e Android (Expo + TypeScript): rotação do dinheiro, compras parceladas, dicas de IA e metas financeiras. Dados financeiros ficam no dispositivo; só resumos agregados saem para gerar dicas. A importação opcional por PDF exige consentimento explícito e usa processamento temporário, sem persistência no Worker.
 
 ## Stack
 
@@ -46,13 +46,40 @@ Supõe o Android Studio já instalado, com pelo menos um dispositivo virtual (AV
    & "$env:LOCALAPPDATA\Android\Sdk\emulator\emulator.exe" -avd Medium_Phone_API_36.1
    ```
 
-3. Com o emulador aberto, rode o app diretamente nele:
+3. Com o emulador aberto, escolha uma das formas de execução abaixo.
+
+   **Expo Go — início rápido**
 
    ```bash
-   npx expo start --android
+   npx expo start --go --android
    ```
 
-   Isso inicia o Metro bundler, detecta o emulador aberto, instala o Expo Go automaticamente nele (se necessário) e carrega o app.
+   Isso inicia o Metro, abre o Expo Go e carrega o app. Importação por PDF e
+   texto funcionam nesse modo; OCR de foto não funciona porque depende do
+   módulo nativo do ML Kit.
+
+   **Development build — necessário para OCR de foto**
+
+   Na primeira execução, ou sempre que uma dependência nativa for adicionada:
+
+   ```bash
+   npx expo run:android
+   ```
+
+   O comando compila, instala e abre um novo aplicativo de desenvolvimento no
+   emulador. Nas execuções seguintes, enquanto as dependências nativas não
+   mudarem:
+
+   ```bash
+   npx expo start --dev-client --android
+   ```
+
+> O parâmetro correto é `--android`, não `--andoid`.
+>
+> Se aparecer `Cannot find native module 'ExpoDocumentPicker'`, o development
+> build instalado é anterior à dependência. Pare o Metro e execute
+> `npx expo run:android` novamente. Apenas usar `--clear` não adiciona módulos
+> nativos ao aplicativo já instalado.
 
 > Dica: se quiser digitar só `emulator` sem o caminho completo, adicione a pasta do binário (`<SDK do Android>/emulator`) ao `PATH` do sistema.
 
