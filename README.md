@@ -60,7 +60,16 @@ Supõe o Android Studio já instalado, com pelo menos um dispositivo virtual (AV
 
    **Development build — necessário para OCR de foto**
 
-   Na primeira execução, ou sempre que uma dependência nativa for adicionada:
+   No PowerShell, aponte o build para o Java incluído no Android Studio e para
+   um cache do Gradle gravável:
+
+   ```powershell
+   $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
+   $env:GRADLE_USER_HOME = Join-Path $env:USERPROFILE ".gradle"
+   ```
+
+   Essas duas variáveis valem para a janela atual do PowerShell. Em seguida,
+   na primeira execução ou sempre que uma dependência nativa for adicionada:
 
    ```bash
    npx expo run:android
@@ -80,6 +89,21 @@ Supõe o Android Studio já instalado, com pelo menos um dispositivo virtual (AV
 > build instalado é anterior à dependência. Pare o Metro e execute
 > `npx expo run:android` novamente. Apenas usar `--clear` não adiciona módulos
 > nativos ao aplicativo já instalado.
+>
+> Se o Gradle tentar criar `C:\.gradle` ou o log mostrar Java 8, configure
+> `JAVA_HOME` e `GRADLE_USER_HOME` com os comandos acima antes de repetir o
+> build. Quando o build falha, o APK anterior permanece instalado no emulador,
+> o que dá a impressão de que o projeto voltou para uma versão antiga.
+
+> Se o APK abrir, mas mostrar uma interface antiga, encerre qualquer Metro
+> anterior com `Ctrl+C` e inicie o servidor a partir da raiz deste projeto:
+
+> ```powershell
+> npx expo start --dev-client --clear --port 8081
+> ```
+
+> Não mantenha dois servidores Expo ativos ao mesmo tempo: o development build
+> pode se conectar ao bundle antigo mesmo quando o APK acabou de ser recompilado.
 
 > Dica: se quiser digitar só `emulator` sem o caminho completo, adicione a pasta do binário (`<SDK do Android>/emulator`) ao `PATH` do sistema.
 

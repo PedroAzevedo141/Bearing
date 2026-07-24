@@ -4,6 +4,7 @@ import { View, Text, ActivityIndicator } from 'react-native';
 import { getRecurringById, RecurringWithTag } from '../../../src/db/queries/recurring';
 import { TransactionForm } from '../../../src/components/forms/TransactionForm';
 import { useTransactions } from '../../../src/hooks/useTransactions';
+import { colors } from '../../../src/theme/colors';
 
 export default function ConfirmRecurringScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -22,25 +23,43 @@ export default function ConfirmRecurringScreen() {
     load();
   }, [id]);
 
+  const header = (
+    <Stack.Screen
+      options={{
+        title: 'Confirmar assinatura',
+        headerShown: true,
+        headerShadowVisible: false,
+        headerStyle: { backgroundColor: colors.background },
+        headerTintColor: colors.ink,
+      }}
+    />
+  );
+
   if (loading) {
     return (
-      <View className="flex-1 justify-center items-center bg-background">
-        <ActivityIndicator size="large" />
-      </View>
+      <>
+        {header}
+        <View className="flex-1 justify-center items-center bg-background">
+          <ActivityIndicator size="large" />
+        </View>
+      </>
     );
   }
 
   if (!recurring) {
     return (
-      <View className="flex-1 justify-center items-center bg-background p-4">
-        <Text className="text-lg text-neutral-800 text-center">Assinatura não encontrada.</Text>
-      </View>
+      <>
+        {header}
+        <View className="flex-1 justify-center items-center bg-background p-4">
+          <Text className="text-lg text-neutral-800 text-center">Assinatura não encontrada.</Text>
+        </View>
+      </>
     );
   }
 
   return (
     <View className="flex-1 bg-background">
-      <Stack.Screen options={{ title: 'Confirmar Assinatura' }} />
+      {header}
       <View className="p-4">
         <Text className="text-base text-neutral-800 mb-4 text-center">
           Chegou o dia de registrar o pagamento da sua assinatura. Confirme os dados abaixo para registrar na sua movimentação.

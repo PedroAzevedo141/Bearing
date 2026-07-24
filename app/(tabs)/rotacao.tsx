@@ -41,17 +41,26 @@ interface QuickActionProps {
 function QuickAction({ icon, label, hint, onPress }: QuickActionProps) {
   return (
     <TouchableOpacity
-      className="min-w-[30%] flex-1 rounded-2xl border border-border bg-surface p-3"
+      className="min-w-0 flex-1 rounded-2xl border border-border bg-surface p-2.5"
       onPress={onPress}
       activeOpacity={0.75}
       accessibilityRole="button"
       accessibilityLabel={`${label}: ${hint}`}
     >
-      <View className="mb-3 h-9 w-9 items-center justify-center rounded-xl bg-tint">
+      <View className="mb-2.5 h-9 w-9 items-center justify-center rounded-xl bg-tint">
         <MaterialCommunityIcons name={icon} size={19} color={colors.primary} />
       </View>
-      <Text className="text-sm font-bold text-ink">{label}</Text>
-      <Text className="mt-0.5 text-xs text-muted">{hint}</Text>
+      <Text
+        className="text-sm font-bold text-ink"
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.78}
+      >
+        {label}
+      </Text>
+      <Text className="mt-0.5 text-xs text-muted" numberOfLines={2}>
+        {hint}
+      </Text>
     </TouchableOpacity>
   );
 }
@@ -127,7 +136,7 @@ export default function RotacaoScreen() {
         </View>
       </View>
 
-      <View className="mx-5 mt-4 flex-row gap-2">
+      <View className="mx-4 mt-4 flex-row gap-2">
         <QuickAction
           icon="file-upload-outline"
           label="Extrato"

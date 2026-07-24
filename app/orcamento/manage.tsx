@@ -6,6 +6,7 @@ import { useBudgets } from '../../src/hooks/useBudgets';
 import { getOrCreateTag } from '../../src/db/queries/tags';
 import { parseCents } from '../../src/utils/money';
 import { SwipeableRow } from '../../src/components/SwipeableRow';
+import { colors } from '../../src/theme/colors';
 
 export default function BudgetManageScreen() {
   const { budgets, saveBudget, removeBudget } = useBudgets();
@@ -35,7 +36,15 @@ export default function BudgetManageScreen() {
 
   return (
     <KeyboardAvoidingView className="flex-1 bg-background" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Stack.Screen options={{ title: 'Gerenciar Orçamentos' }} />
+      <Stack.Screen
+        options={{
+          title: 'Orçamentos',
+          headerShown: true,
+          headerShadowVisible: false,
+          headerStyle: { backgroundColor: colors.background },
+          headerTintColor: colors.ink,
+        }}
+      />
       
       <View className="p-4 bg-surface border-b border-border gap-2">
         <Text className="text-sm text-neutral-600 mb-2">
