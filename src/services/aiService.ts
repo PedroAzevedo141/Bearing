@@ -38,13 +38,23 @@ export class AiServiceError extends Error {
   }
 }
 
-/** Lê a configuração do Worker do app.json (expo.extra). */
+/**
+ * Lê a configuração do Worker.
+ *
+ * O secret fica em `.env.local` (ou em uma variável de ambiente do EAS),
+ * nunca no `app.json` versionado. Como ainda é uma configuração do cliente,
+ * ele continua visível no bundle final; portanto é apenas uma barreira contra
+ * uso casual e deve ser rotacionado quando exposto.
+ */
 function getWorkerConfig(): { url: string; secret: string } {
   const extra = Constants.expoConfig?.extra ?? {};
-  const url = extra.aiWorkerUrl as string | undefined;
-  const secret = extra.aiAppSecret as string | undefined;
+  const url = process.env.EXPO_PUBLIC_AI_WORKER_URL ?? (extra.aiWorkerUrl as string | undefined);
+  const secret = process.env.EXPO_PUBLIC_AI_APP_SECRET;
   if (!url || !secret) {
-    throw new AiServiceError(0, 'Worker de IA não configurado (expo.extra em app.json)');
+    throw new AiServiceError(
+      0,
+      'Worker de IA não configurado (defina EXPO_PUBLIC_AI_APP_SECRET em .env.local)'
+    );
   }
   return { url, secret };
 }

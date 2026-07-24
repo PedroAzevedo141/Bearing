@@ -27,8 +27,7 @@
       "expo-font"
     ],
     "extra": {
-      "aiWorkerUrl": "https://bearing-ai.pedroazevedo141.workers.dev",
-      "aiAppSecret": "506d812b3977550c3cdb089df29ea89887f20b1f02de7e3c17201e71b50d4a8e"
+      "aiWorkerUrl": "https://bearing-ai.pedroazevedo141.workers.dev"
     }
   }
 }

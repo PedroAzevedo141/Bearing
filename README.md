@@ -113,11 +113,22 @@ Supõe o Android Studio já instalado, com pelo menos um dispositivo virtual (AV
 cd worker
 npm install
 npx wrangler secret put ANTHROPIC_API_KEY   # chave do Claude Console
-npx wrangler secret put APP_SECRET          # segredo compartilhado com o app
+npx wrangler secret put APP_SECRET          # mesmo valor do .env.local do app
 npm run deploy
 ```
 
-Depois, aponte `expo.extra.aiWorkerUrl` e `expo.extra.aiAppSecret` no [app.json](app.json) para a URL publicada e o mesmo segredo. Configure também o spend limit de US$5 em *Settings > Limits* no Claude Console e a regra de rate limiting (20 req/h por IP) no dashboard da Cloudflare.
+Na raiz do projeto, copie `.env.example` para `.env.local` e preencha
+`EXPO_PUBLIC_AI_APP_SECRET` com o mesmo valor usado no Worker. O arquivo
+`.env.local` é ignorado pelo Git; o `app.json` contém apenas a URL pública do
+Worker. Reinicie o Metro depois de alterar variáveis (`npx expo start --clear`).
+
+Importante: variáveis `EXPO_PUBLIC_*` são incorporadas ao bundle do aplicativo
+e podem ser lidas por quem obtiver o APK. Essa configuração evita o vazamento
+acidental no repositório, mas não transforma o token em um segredo real. Para
+segurança forte, substitua essa barreira por autenticação de usuário/atestado
+no Worker. Configure também o spend limit de US$5 em *Settings > Limits* no
+Claude Console e a regra de rate limiting (20 req/h por IP) no dashboard da
+Cloudflare.
 
 ## Estrutura de pastas
 

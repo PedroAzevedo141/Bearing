@@ -6,7 +6,8 @@
 #
 # Segredos (NUNCA commitá-los; use `wrangler secret put`):
 #   wrangler secret put ANTHROPIC_API_KEY   # chave do Claude Console
-#   wrangler secret put APP_SECRET          # mesmo valor de expo.extra.aiAppSecret
+#   wrangler secret put APP_SECRET          # mesmo valor de EXPO_PUBLIC_AI_APP_SECRET
+#                                            # em .env.local/EAS (nunca no app.json)
 #
 # Controle de custo adicional: spend limit de US$5 em Settings > Limits no
 # Claude Console + regra de rate limiting (20 req/h por IP) no dashboard
