@@ -14,6 +14,8 @@ O app **nunca** cria a transação sozinho. A assinatura (`recurring_transaction
 
 Consistência com o resto do app importa mais que automação total: a mesma postura ("app sugere, humano confirma") das outras features.
 
+**Origem via importação de extrato:** ao revisar um extrato (Confirmação 2), o usuário pode marcar um lançamento como "Assinatura". Isso **grava a transação daquele mês** (a cobrança já aconteceu e está no extrato — a marcação na tela de revisão é a própria confirmação humana) **e** cadastra a recorrência para os meses seguintes, deduplicando por nome (`isNameSimilar`) para não repetir a assinatura a cada extrato. Os meses futuros continuam seguindo o fluxo de lembrete + confirmação acima — o app não passa a lançar sozinho. O `day_of_month` é derivado da data da cobrança.
+
 ## Consequências
 
 **Mais fácil:** nunca gera transação errada silenciosamente; o usuário corrige o valor do mês na hora; reusa o formulário de transação (sem tela nova de captura).

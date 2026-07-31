@@ -147,6 +147,12 @@ export interface ParsedStatementItem {
   is_installment: boolean;
   installment_current: number | null;
   installment_total: number | null;
+  /**
+   * Marcado pelo usuário na Confirmação 2 quando o lançamento é uma assinatura
+   * recorrente (ex: Netflix). A IA não define isto; é escolha manual. Gera a
+   * transação do mês E cadastra/atualiza a recorrência. Ver ADR-0008.
+   */
+  is_subscription?: boolean;
 }
 
 /** Resposta de `POST /ai/parse-statement`. */

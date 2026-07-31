@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import { Alert, FlatList, KeyboardAvoidingView, Platform, View, Text } from 'react-native';
-import { Button, Checkbox, TextInput, ActivityIndicator } from 'react-native-paper';
+import { Button, SegmentedButtons, TextInput, ActivityIndicator } from 'react-native-paper';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { parseStatementText, saveParsedItems } from '../../src/services/statementService';
 import { getOrCreateDefaultAccount } from '../../src/db/queries/accounts';
@@ -96,34 +96,57 @@ export default function ImportReviewScreen() {
               {item.type === 'expense' ? 'Saída' : 'Entrada'}
             </Button>
           </View>
-          <View className="flex-row items-center gap-2">
-            <Checkbox
-              status={item.is_installment ? 'checked' : 'unchecked'}
-              onPress={() => updateItem(index, { is_installment: !item.is_installment })}
+          <View>
+            <Text className="mb-1.5 text-xs font-semibold text-muted">Tipo de lançamento</Text>
+            <SegmentedButtons
+              value={item.is_subscription ? 'subscription' : item.is_installment ? 'installment' : 'single'}
+              onValueChange={(value) =>
+                updateItem(index, {
+                  is_installment: value === 'installment',
+                  is_subscription: value === 'subscription',
+                  // Zera os campos de parcela ao sair de "Parcela".
+                  installment_current: value === 'installment' ? item.installment_current : null,
+                  installment_total: value === 'installment' ? item.installment_total : null,
+                })
+              }
+              density="small"
+              buttons={[
+                { value: 'single', label: 'Avulsa', icon: 'cart-outline' },
+                { value: 'installment', label: 'Parcela', icon: 'credit-card-multiple-outline' },
+                { value: 'subscription', label: 'Assinatura', icon: 'calendar-sync-outline' },
+              ]}
             />
-            <Text className="text-neutral-900">É parcela?</Text>
-            
-            {item.is_installment && (
-              <View className="flex-row gap-1 flex-1">
-                <TextInput
-                  mode="outlined"
-                  label="Atual"
-                  keyboardType="number-pad"
-                  value={String(item.installment_current || '')}
-                  onChangeText={(v) => updateItem(index, { installment_current: parseInt(v) || null })}
-                  style={{ flex: 1 }}
-                />
-                <TextInput
-                  mode="outlined"
-                  label="Total"
-                  keyboardType="number-pad"
-                  value={String(item.installment_total || '')}
-                  onChangeText={(v) => updateItem(index, { installment_total: parseInt(v) || null })}
-                  style={{ flex: 1 }}
-                />
-              </View>
-            )}
           </View>
+
+          {item.is_installment && (
+            <View className="flex-row gap-2">
+              <TextInput
+                mode="outlined"
+                label="Parcela atual"
+                keyboardType="number-pad"
+                value={String(item.installment_current || '')}
+                onChangeText={(v) => updateItem(index, { installment_current: parseInt(v) || null })}
+                style={{ flex: 1 }}
+              />
+              <TextInput
+                mode="outlined"
+                label="Total de parcelas"
+                keyboardType="number-pad"
+                value={String(item.installment_total || '')}
+                onChangeText={(v) => updateItem(index, { installment_total: parseInt(v) || null })}
+                style={{ flex: 1 }}
+              />
+            </View>
+          )}
+
+          {item.is_subscription && (
+            <View className="flex-row items-center gap-2 rounded-2xl bg-tint px-3 py-2">
+              <MaterialCommunityIcons name="information-outline" size={16} color={colors.primary} />
+              <Text className="flex-1 text-xs leading-4 text-muted">
+                Registramos a cobrança deste mês e criamos um lembrete mensal em Assinaturas.
+              </Text>
+            </View>
+          )}
         </View>
       </SwipeableRow>
     );

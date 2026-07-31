@@ -9,12 +9,13 @@
  * Relacionado: docs/API_CONTRACTS.md, src/services/statementMatching.ts
  */
 import { fetchParseStatement } from './aiService';
-import { findMatchingInstallment } from './statementMatching';
+import { findMatchingInstallment, isNameSimilar } from './statementMatching';
 import {
   createInstallmentPurchase,
   listInstallmentPurchases,
   updateInstallmentPurchase,
 } from '../db/queries/installments';
+import { createRecurring, listRecurring } from '../db/queries/recurring';
 import { createTransaction } from '../db/queries/transactions';
 import type { ParsedStatementItem } from '../types';
 
@@ -34,6 +35,7 @@ export async function parseStatementText(ocrText: string): Promise<ParsedStateme
     ...item,
     installment_current: item.installment_current ?? null,
     installment_total: item.installment_total ?? null,
+    is_subscription: false,
   }));
 }
 
@@ -44,6 +46,9 @@ export async function parseStatementText(ocrText: string): Promise<ParsedStateme
  * - Parcelas → casa com uma compra existente (`updateInstallmentPurchase`,
  *   avançando a parcela atual) ou cria uma nova (`createInstallmentPurchase`),
  *   evitando duplicar a mesma compra a cada extrato mensal.
+ * - Assinaturas → grava a transação **deste mês** (a cobrança aconteceu) E
+ *   cadastra a recorrência para lembretes futuros, deduplicando por nome pra
+ *   não criar uma assinatura repetida a cada extrato.
  *
  * @param items - Itens já revisados pelo usuário.
  * @param accountId - Conta destino das transações avulsas.
@@ -53,9 +58,28 @@ export async function saveParsedItems(
   accountId: string
 ): Promise<void> {
   const activeInstallments = await listInstallmentPurchases();
+  const existingRecurring = await listRecurring();
 
   for (const item of items) {
-    if (item.is_installment && item.installment_current && item.installment_total) {
+    if (item.is_subscription) {
+      // A cobrança do mês entra como transação normal (conta no saldo).
+      await createTransaction({
+        account_id: accountId,
+        tag_id: null,
+        amount_cents: item.amount_cents,
+        type: item.type,
+        description: item.description,
+        occurred_at: item.occurred_at,
+      });
+      // Só cadastra a recorrência se ainda não houver uma com nome parecido.
+      const alreadyTracked = existingRecurring.some((r) => isNameSimilar(r.name, item.description));
+      if (!alreadyTracked) {
+        const dayOfMonth = new Date(item.occurred_at * 1000).getDate();
+        const created = await createRecurring(item.description, item.amount_cents, dayOfMonth, null);
+        // Evita duplicar entre itens do mesmo extrato (dois lançamentos iguais).
+        existingRecurring.push({ ...created, tagName: null });
+      }
+    } else if (item.is_installment && item.installment_current && item.installment_total) {
       const match = findMatchingInstallment(item, activeInstallments);
       if (match) {
         // Só avança a parcela atual se o extrato estiver à frente do registrado.

@@ -30,6 +30,7 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 - Importação de extrato por PDF (até 20 MB), com consentimento explícito, extração temporária no Worker e revisão do texto antes da classificação.
 - Componentes compartilhados de cabeçalho e estado vazio para dar consistência às áreas principais.
 - Aba **Rotação**: linha "Parcelas do mês" — soma derivada das parcelas ativas, sinalizada como compromisso fixo fora do saldo do período (nunca gravada como transação).
+- Importação de extrato: tipo **Assinatura** na Confirmação 2 (seletor Avulsa/Parcela/Assinatura). Marcar "Assinatura" grava a cobrança do mês E cadastra a recorrência para lembretes futuros, deduplicando por nome (dia do vencimento derivado da data da cobrança).
 
 ### Alterado
 
