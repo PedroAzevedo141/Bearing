@@ -62,12 +62,13 @@ export function TransactionForm({
   }
 
   return (
-    <View className="gap-2 border-t border-border bg-surface p-4">
-      <View className="flex-row justify-around">
+    <View className="gap-3 bg-surface p-4">
+      <View className="flex-row gap-2">
         <Button
           mode={type === 'expense' ? 'contained' : 'outlined'}
           buttonColor={type === 'expense' ? colors.negative : undefined}
           onPress={() => setType('expense')}
+          style={{ flex: 1 }}
         >
           Saída
         </Button>
@@ -75,6 +76,7 @@ export function TransactionForm({
           mode={type === 'income' ? 'contained' : 'outlined'}
           buttonColor={type === 'income' ? colors.positive : undefined}
           onPress={() => setType('income')}
+          style={{ flex: 1 }}
         >
           Entrada
         </Button>
@@ -82,6 +84,7 @@ export function TransactionForm({
       <TextInput
         mode="outlined"
         label="Valor (ex: 45,90)"
+        left={<TextInput.Affix text="R$" />}
         keyboardType="decimal-pad"
         value={amount}
         onChangeText={setAmount}
@@ -99,7 +102,7 @@ export function TransactionForm({
         value={tagName}
         onChangeText={setTagName}
       />
-      <Button mode="contained" onPress={handleSubmit}>
+      <Button mode="contained" onPress={handleSubmit} contentStyle={{ height: 48 }}>
         {mode === 'edit' ? 'Salvar' : 'Adicionar'}
       </Button>
       {onCancel ? (

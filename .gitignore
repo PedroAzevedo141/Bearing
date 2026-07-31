@@ -157,4 +157,9 @@ docs/generated/
 worker/.wrangler/
 worker/.dev.vars
 
+.claude/
+
+# Android / React Native
+android/
+
 .idea

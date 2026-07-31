@@ -12,13 +12,16 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: '#2E86AB',
-        positive: '#1B7F4D',
-        negative: '#C0392B',
-        background: '#F5F5F2',
+        primary: '#315CF5',
+        accent: '#16A889',
+        ink: '#101828',
+        positive: '#11845B',
+        negative: '#D1465B',
+        background: '#F4F7FB',
         surface: '#FFFFFF',
-        border: '#DDDDDD',
-        muted: '#888888',
+        border: '#E3E9F2',
+        muted: '#667085',
+        tint: '#EAF0FF',
       },
     },
   },

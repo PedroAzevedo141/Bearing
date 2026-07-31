@@ -37,6 +37,20 @@ export function formatCents(cents: number): string {
 }
 
 /**
+ * Converte centavos no texto editável de um campo de valor ("1234,56"), sem
+ * símbolo de moeda — o inverso de `parseCents`, para pré-preencher inputs.
+ *
+ * @param cents - Valor em centavos.
+ * @returns String com vírgula decimal e sempre 2 casas (ex: "1234,56").
+ *
+ * @example
+ * centsToAmountInput(123456); // "1234,56"
+ */
+export function centsToAmountInput(cents: number): string {
+  return (cents / 100).toFixed(2).replace('.', ',');
+}
+
+/**
  * Converte a digitação do usuário ("1.234,56", "1234.56", "1234") em centavos.
  *
  * Aceita tanto vírgula quanto ponto como separador decimal e ignora

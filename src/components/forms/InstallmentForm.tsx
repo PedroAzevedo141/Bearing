@@ -78,7 +78,7 @@ export function InstallmentForm({
   }
 
   return (
-    <View className="gap-2 border-t border-border bg-surface p-4">
+    <View className="gap-3 bg-surface p-4">
       <TextInput
         mode="outlined"
         label="Nome (ex: Notebook Dell)"
@@ -117,7 +117,7 @@ export function InstallmentForm({
         value={tagName}
         onChangeText={setTagName}
       />
-      <Button mode="contained" onPress={handleSubmit}>
+      <Button mode="contained" onPress={handleSubmit} contentStyle={{ height: 48 }}>
         Salvar
       </Button>
       <Button mode="text" onPress={onCancel}>

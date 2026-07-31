@@ -1,18 +1,16 @@
-/**
- * Aba 4 — Metas financeiras: lista de metas com progresso, aportes manuais
- * e plano de ação sugerido pela IA (structured output, renderizado como
- * lista de passos). Editar/excluir a meta são via swipe no card
- * (ver docs/adr/0006); aporte e plano de IA ficam no painel de detalhe.
- */
+/** Metas financeiras com progresso consolidado e aportes rápidos. */
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
-import { Alert, FlatList, KeyboardAvoidingView, Platform, Text, View } from 'react-native';
-import { ActivityIndicator, Button, TextInput } from 'react-native-paper';
+import { FlatList, KeyboardAvoidingView, Platform, Text, View } from 'react-native';
+import { FAB, Modal, Portal, TextInput, Button } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { confirmDestructive } from '../../src/components/ConfirmDialog';
+import { EmptyState } from '../../src/components/EmptyState';
 import { GoalForm } from '../../src/components/forms/GoalForm';
 import { GoalCard } from '../../src/components/GoalCard';
+import { ScreenHeader } from '../../src/components/ScreenHeader';
 import { SwipeableRow } from '../../src/components/SwipeableRow';
-import { useGoalPlan } from '../../src/hooks/useAiInsight';
 import { useGoals } from '../../src/hooks/useGoals';
 import { colors } from '../../src/theme/colors';
 import type { Goal } from '../../src/types';
@@ -20,35 +18,41 @@ import { formatCents, parseCents } from '../../src/utils/money';
 
 export default function MetasScreen() {
   const { goals, addGoal, editGoal, contribute, removeGoal } = useGoals();
-
   const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
   const selectedGoal = useMemo(
-    () => goals.find((g) => g.id === selectedGoalId) ?? null,
+    () => goals.find((goal) => goal.id === selectedGoalId) ?? null,
     [goals, selectedGoalId]
   );
-  const plan = useGoalPlan(selectedGoal);
+  const totals = useMemo(
+    () =>
+      goals.reduce(
+        (result, goal) => ({
+          current: result.current + goal.current_amount_cents,
+          target: result.target + goal.target_amount_cents,
+        }),
+        { current: 0, target: 0 }
+      ),
+    [goals]
+  );
+  const overallProgress =
+    totals.target > 0 ? Math.min(Math.round((totals.current / totals.target) * 100), 100) : 0;
 
   const [showForm, setShowForm] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [contribution, setContribution] = useState('');
-  const [capacity, setCapacity] = useState('');
+
+  function closeForm() {
+    setShowForm(false);
+    setEditingGoal(null);
+  }
 
   async function handleContribute() {
     const cents = parseCents(contribution);
-    if (!selectedGoal || cents === null || cents === 0) {
+    if (!selectedGoal || cents === null || cents <= 0) {
       return;
     }
     await contribute(selectedGoal.id, cents);
     setContribution('');
-  }
-
-  async function handleGeneratePlan() {
-    const capacityCents = parseCents(capacity);
-    if (capacityCents === null || capacityCents <= 0) {
-      Alert.alert('Capacidade mensal', 'Informe quanto você consegue guardar por mês.');
-      return;
-    }
-    await plan.generate(capacityCents);
   }
 
   function confirmDelete(id: string) {
@@ -65,108 +69,158 @@ export default function MetasScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      className="flex-1 bg-background"
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <FlatList
-        data={goals}
-        keyExtractor={(item) => item.id}
-        contentContainerClassName="py-2"
-        renderItem={({ item }) => (
-          <SwipeableRow onEdit={() => setEditingGoal(item)} onDelete={() => confirmDelete(item.id)}>
-            <GoalCard
-              goal={item}
-              onPress={() => setSelectedGoalId(item.id === selectedGoalId ? null : item.id)}
-            />
-          </SwipeableRow>
-        )}
-        ListEmptyComponent={
-          <Text className="mt-8 px-6 text-center text-muted">
-            Nenhuma meta ainda. Crie a primeira!
-          </Text>
-        }
-        ListFooterComponent={
-          selectedGoal ? (
-            <View className="mx-4 mt-2 gap-2 rounded-xl bg-surface p-4">
-              <Text className="text-base font-bold text-neutral-900">{selectedGoal.name}</Text>
-
-              <View className="flex-row items-center gap-2">
-                <TextInput
-                  mode="outlined"
-                  label="Aporte (ex: 200,00)"
-                  keyboardType="decimal-pad"
-                  value={contribution}
-                  onChangeText={setContribution}
-                  style={{ flex: 1 }}
-                />
-                <Button mode="contained" onPress={handleContribute}>
-                  Aportar
-                </Button>
-              </View>
-
-              <View className="flex-row items-center gap-2">
-                <TextInput
-                  mode="outlined"
-                  label="Quanto guarda por mês?"
-                  keyboardType="decimal-pad"
-                  value={capacity}
-                  onChangeText={setCapacity}
-                  style={{ flex: 1 }}
-                />
-                <Button mode="contained" onPress={handleGeneratePlan} disabled={plan.loading}>
-                  Plano IA
-                </Button>
-              </View>
-
-              {plan.loading ? <ActivityIndicator style={{ marginVertical: 8 }} /> : null}
-              {plan.error ? (
-                <Text style={{ color: colors.negative }} className="text-sm">
-                  {plan.error}
-                </Text>
-              ) : null}
-              {plan.data ? (
-                <View className="mt-2 gap-1.5">
-                  <Text style={{ color: colors.primary }} className="text-sm font-semibold">
-                    Sugestão: {formatCents(plan.data.suggested_monthly_cents)}/mês · ~
-                    {plan.data.estimated_months} meses
-                  </Text>
-                  {plan.data.steps.map((step) => (
-                    <Text key={step.order} className="text-sm leading-5 text-neutral-800">
-                      {step.order}. {step.description}
+    <SafeAreaView className="flex-1 bg-background" edges={['top']}>
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <FlatList
+          data={goals}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{ paddingBottom: 104 }}
+          renderItem={({ item }) => (
+            <SwipeableRow
+              onEdit={() => setEditingGoal(item)}
+              onDelete={() => confirmDelete(item.id)}
+            >
+              <GoalCard
+                goal={item}
+                onPress={() => setSelectedGoalId(item.id === selectedGoalId ? null : item.id)}
+              />
+            </SwipeableRow>
+          )}
+          ListHeaderComponent={
+            <View>
+              <ScreenHeader
+                eyebrow="Construção"
+                title="Metas"
+                description="Transforme planos grandes em pequenos avanços visíveis."
+                icon="target"
+              />
+              <View className="mx-5 mb-5 overflow-hidden rounded-3xl bg-ink p-5">
+                <View className="flex-row items-center justify-between">
+                  <View>
+                    <Text className="text-sm text-white/60">Progresso combinado</Text>
+                    <Text className="mt-1 text-2xl font-bold text-white">
+                      {formatCents(totals.current)}
                     </Text>
-                  ))}
+                  </View>
+                  <View className="h-14 w-14 items-center justify-center rounded-full border-4 border-accent">
+                    <Text className="text-xs font-bold text-white">{overallProgress}%</Text>
+                  </View>
                 </View>
-              ) : null}
+                <View className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
+                  <View
+                    className="h-full rounded-full bg-accent"
+                    style={{ width: `${overallProgress}%` }}
+                  />
+                </View>
+                <Text className="mt-2 text-xs text-white/60">
+                  Objetivo total: {formatCents(totals.target)}
+                </Text>
+              </View>
+              <View className="mb-2 flex-row items-end justify-between px-5">
+                <View>
+                  <Text className="text-lg font-bold text-ink">Seus objetivos</Text>
+                  <Text className="text-xs text-muted">Toque em uma meta para fazer um aporte</Text>
+                </View>
+                <Text className="text-xs font-bold text-primary">{goals.length} metas</Text>
+              </View>
             </View>
-          ) : null
-        }
-      />
+          }
+          ListEmptyComponent={
+            <EmptyState
+              icon="flag-plus-outline"
+              title="Escolha algo para conquistar"
+              description="Crie uma meta e acompanhe cada aporte até chegar ao valor desejado."
+              actionLabel="Criar primeira meta"
+              onAction={() => setShowForm(true)}
+            />
+          }
+          ListFooterComponent={
+            selectedGoal ? (
+              <View className="mx-5 mt-3 rounded-3xl border border-primary/20 bg-tint p-4">
+                <View className="mb-3 flex-row items-center gap-3">
+                  <View className="h-10 w-10 items-center justify-center rounded-xl bg-surface">
+                    <MaterialCommunityIcons name="piggy-bank-outline" size={21} color={colors.primary} />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-base font-bold text-ink">Aportar em {selectedGoal.name}</Text>
+                    <Text className="text-xs text-muted">
+                      Faltam {formatCents(Math.max(
+                        selectedGoal.target_amount_cents - selectedGoal.current_amount_cents,
+                        0
+                      ))}
+                    </Text>
+                  </View>
+                </View>
+                <View className="flex-row items-center gap-2">
+                  <TextInput
+                    mode="outlined"
+                    label="Valor do aporte"
+                    left={<TextInput.Affix text="R$" />}
+                    keyboardType="decimal-pad"
+                    value={contribution}
+                    onChangeText={setContribution}
+                    style={{ flex: 1, backgroundColor: colors.surface }}
+                  />
+                  <Button mode="contained" onPress={handleContribute} disabled={!contribution.trim()}>
+                    Aportar
+                  </Button>
+                </View>
+              </View>
+            ) : null
+          }
+        />
 
-      {editingGoal ? (
-        <GoalForm
-          key={editingGoal.id}
-          mode="edit"
-          initialGoal={editingGoal}
-          onSubmit={async (input) => {
-            await editGoal(editingGoal.id, input);
-            setEditingGoal(null);
-          }}
-          onCancel={() => setEditingGoal(null)}
+        <FAB
+          icon="plus"
+          label="Nova meta"
+          onPress={() => setShowForm(true)}
+          style={{ position: 'absolute', right: 20, bottom: 18 }}
         />
-      ) : showForm ? (
-        <GoalForm
-          mode="create"
-          onSubmit={(input) => addGoal({ ...input, deadline: null })}
-          onCancel={() => setShowForm(false)}
-        />
-      ) : (
-        <View className="border-t border-border bg-surface p-4">
-          <Button mode="contained" onPress={() => setShowForm(true)}>
-            Nova meta
-          </Button>
-        </View>
-      )}
-    </KeyboardAvoidingView>
+
+        <Portal>
+          <Modal
+            visible={showForm || editingGoal !== null}
+            onDismiss={closeForm}
+            contentContainerStyle={{
+              margin: 20,
+              borderRadius: 24,
+              overflow: 'hidden',
+              backgroundColor: colors.surface,
+            }}
+          >
+            <View className="px-4 pt-4">
+              <Text className="text-xl font-bold text-ink">
+                {editingGoal ? 'Editar meta' : 'Nova meta'}
+              </Text>
+              <Text className="mt-1 text-sm text-muted">Dê um nome ao plano e defina o valor final.</Text>
+            </View>
+            {editingGoal ? (
+              <GoalForm
+                key={editingGoal.id}
+                mode="edit"
+                initialGoal={editingGoal}
+                onSubmit={async (input) => {
+                  await editGoal(editingGoal.id, input);
+                  closeForm();
+                }}
+                onCancel={closeForm}
+              />
+            ) : (
+              <GoalForm
+                mode="create"
+                onSubmit={async (input) => {
+                  await addGoal({ ...input, deadline: null });
+                  closeForm();
+                }}
+                onCancel={closeForm}
+              />
+            )}
+          </Modal>
+        </Portal>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }

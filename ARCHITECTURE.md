@@ -1,6 +1,6 @@
 # Arquitetura
 
-Princípio central: **local-first**. Nenhum dado financeiro sai do dispositivo, exceto o resumo agregado enviado pontualmente para gerar dicas de IA — e mesmo esse resumo não é armazenado em nenhum servidor. A decisão completa está registrada em [ADR-0001](docs/adr/0001-local-first-architecture.md).
+Princípio central: **local-first**. Dados financeiros ficam no dispositivo, exceto resumos agregados enviados pontualmente para dicas de IA. A importação de PDF é uma exceção opcional e explícita: o usuário autoriza o envio temporário do documento, que não é persistido pelo Worker, e revisa o texto retornado antes da classificação. As decisões completas estão em [ADR-0001](docs/adr/0001-local-first-architecture.md) e [ADR-0007](docs/adr/0007-importacao-extrato-ocr.md).
 
 ## Diagrama
 
@@ -13,7 +13,7 @@ flowchart LR
         DB[("SQLite local<br/>expo-sqlite")]
         Bio["Biometria<br/>expo-local-authentication"]
         Notif["Lembretes locais<br/>expo-notifications"]
-        AiSvc["aiService.ts<br/>(só agregados)"]
+        AiSvc["aiService.ts<br/>(agregados + PDF opt-in)"]
     end
 
     subgraph Cloudflare["☁️ Cloudflare (stateless)"]
@@ -26,7 +26,7 @@ flowchart LR
     UI --> Hooks --> Queries --> DB
     Hooks --> AiSvc
     Hooks --> Notif
-    AiSvc -- "resumo agregado<br/>(nunca transações)" --> Worker
+    AiSvc -- "resumo agregado<br/>ou PDF autorizado" --> Worker
     Worker -- "API key em secret" --> Anthropic
 ```
 
@@ -64,3 +64,6 @@ Toda decisão arquitetural relevante (nova lib, mudança de padrão, nova integr
 | [0004 — Metas compartilhadas](docs/adr/0004-proposta-metas-compartilhadas.md) | Proposta |
 | [0005 — Design system: NativeWind + React Native Paper](docs/adr/0005-design-system-nativewind-paper.md) | Aceito |
 | [0006 — Padrão de CRUD: editar e excluir](docs/adr/0006-padrao-crud-editar-excluir.md) | Aceito |
+| [0007 — Importação de extrato: OCR local + dupla confirmação](docs/adr/0007-importacao-extrato-ocr.md) | Aceito |
+| [0008 — Assinaturas: lembrete + confirmação humana](docs/adr/0008-assinaturas-confirmacao-humana.md) | Aceito |
+| [0009 — Chat com IA: tools no client](docs/adr/0009-chat-ia-tools-no-client.md) | Aceito |

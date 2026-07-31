@@ -52,7 +52,7 @@ export function GoalForm({ mode, initialGoal, onSubmit, onCancel }: GoalFormProp
   }
 
   return (
-    <View className="gap-2 border-t border-border bg-surface p-4">
+    <View className="gap-3 bg-surface p-4">
       <TextInput
         mode="outlined"
         label="Nome da meta (ex: Viagem)"
@@ -62,11 +62,12 @@ export function GoalForm({ mode, initialGoal, onSubmit, onCancel }: GoalFormProp
       <TextInput
         mode="outlined"
         label="Valor-alvo (ex: 5000,00)"
+        left={<TextInput.Affix text="R$" />}
         keyboardType="decimal-pad"
         value={target}
         onChangeText={setTarget}
       />
-      <Button mode="contained" onPress={handleSubmit}>
+      <Button mode="contained" onPress={handleSubmit} contentStyle={{ height: 48 }}>
         {mode === 'edit' ? 'Salvar' : 'Criar meta'}
       </Button>
       <Button mode="text" onPress={onCancel}>

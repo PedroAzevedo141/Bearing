@@ -23,11 +23,11 @@
           "faceIDPermission": "O Bearing usa Face ID para proteger seus dados financeiros."
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      "expo-font"
     ],
     "extra": {
-      "aiWorkerUrl": "https://bearing-ai.SEU-SUBDOMINIO.workers.dev",
-      "aiAppSecret": "TROQUE-ESTE-SEGREDO"
+      "aiWorkerUrl": "https://bearing-ai.pedroazevedo141.workers.dev"
     }
   }
 }

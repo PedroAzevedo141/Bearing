@@ -90,6 +90,82 @@ export interface Goal {
 }
 
 /**
+ * Conversa de chat com a IA.
+ */
+export interface ChatConversation {
+  id: string;
+  title: string;
+  created_at: number;
+  updated_at: number;
+}
+
+/**
+ * Mensagem em uma conversa de chat.
+ */
+export interface ChatMessage {
+  id: string;
+  conversation_id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  created_at: number;
+}
+
+/**
+ * Orçamento mensal por tag.
+ */
+export interface Budget {
+  id: string;
+  tag_id: string;
+  limit_cents: number;
+  created_at: number;
+}
+
+/**
+ * Assinatura/transação recorrente.
+ */
+export interface RecurringTransaction {
+  id: string;
+  name: string;
+  amount_cents: number;
+  day_of_month: number;
+  tag_id: string | null;
+  created_at: number;
+}
+
+/**
+ * Item processado pelo Worker após envio do extrato OCR.
+ *
+ * Para itens com `is_installment: true`, `amount_cents` é o valor de **uma**
+ * parcela (a cobrança que aparece neste extrato) — o total da compra é
+ * `amount_cents * installment_total`. Ver docs/API_CONTRACTS.md.
+ */
+export interface ParsedStatementItem {
+  description: string;
+  amount_cents: number;
+  type: TransactionType;
+  occurred_at: number;
+  is_installment: boolean;
+  installment_current: number | null;
+  installment_total: number | null;
+  /**
+   * Marcado pelo usuário na Confirmação 2 quando o lançamento é uma assinatura
+   * recorrente (ex: Netflix). A IA não define isto; é escolha manual. Gera a
+   * transação do mês E cadastra/atualiza a recorrência. Ver ADR-0008.
+   */
+  is_subscription?: boolean;
+}
+
+/** Resposta de `POST /ai/parse-statement`. */
+export interface ParseStatementResponse {
+  items: ParsedStatementItem[];
+}
+
+/** Resposta da extração temporária de texto de um PDF de extrato. */
+export interface PdfStatementExtractionResponse {
+  extracted_text: string;
+}
+
+/**
  * Resultado de chamada de IA cacheado localmente, para evitar rechamar o
  * Worker a cada abertura do app.
  */
@@ -150,4 +226,40 @@ export interface GoalPlanResponse {
   steps: GoalPlanStep[];
   suggested_monthly_cents: number;
   estimated_months: number;
+}
+
+/**
+ * Bloco de conteúdo trocado com a Claude API no chat. Subconjunto dos tipos
+ * da Anthropic usado pelo client no loop de tool use (o SDK completo só
+ * existe no Worker).
+ */
+export type ChatContentBlock =
+  | { type: 'text'; text: string }
+  | { type: 'tool_use'; id: string; name: string; input: unknown }
+  | { type: 'tool_result'; tool_use_id: string; content: string; is_error?: boolean };
+
+/**
+ * Mensagem no formato que o Worker `/ai/chat` repassa à Claude API
+ * (Anthropic `MessageParam`). `content` é texto simples nas mensagens do
+ * usuário digitadas na UI, ou uma lista de blocos durante o loop de tools.
+ */
+export interface ChatApiMessage {
+  role: 'user' | 'assistant';
+  content: string | ChatContentBlock[];
+}
+
+/** Corpo de `POST /ai/chat`. */
+export interface ChatRequest {
+  /** System prompt já montado com o contexto financeiro fresco. */
+  system_prompt: string;
+  /** Histórico da conversa (últimas N mensagens + blocos de tool). */
+  messages: ChatApiMessage[];
+}
+
+/**
+ * Resposta de `POST /ai/chat` — a `Message` bruta da Claude API; o client só
+ * lê `content` (pode conter blocos `text` e/ou `tool_use`).
+ */
+export interface ChatResponse {
+  content: ChatContentBlock[];
 }

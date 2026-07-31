@@ -129,3 +129,32 @@ export async function getBalanceByTag(periodDays: number): Promise<TagBalance[]>
     since
   );
 }
+
+/**
+ * Soma entradas e saídas por tag num mês/ano específico — usado pela tool
+ * `getGastosPorTag` do chat, que pede um mês concreto (não uma janela móvel).
+ *
+ * @param month - Mês 1-12.
+ * @param year - Ano com 4 dígitos (ex: 2026).
+ * @returns Um total por tag no intervalo `[início do mês, início do mês seguinte)`,
+ *   com gasto como valor negativo. Transações sem tag entram como "sem categoria".
+ */
+export async function getBalanceByTagForMonth(month: number, year: number): Promise<TagBalance[]> {
+  const db = await getDb();
+  // Range em segundos: [1º dia do mês 00:00 local, 1º dia do mês seguinte).
+  const start = Math.floor(new Date(year, month - 1, 1).getTime() / 1000);
+  const end = Math.floor(new Date(year, month, 1).getTime() / 1000);
+  return db.getAllAsync<TagBalance>(
+    `SELECT
+       COALESCE(tags.name, 'sem categoria') AS tag,
+       SUM(CASE WHEN transactions.type = 'income' THEN transactions.amount_cents
+                ELSE -transactions.amount_cents END) AS total_cents
+     FROM transactions
+     LEFT JOIN tags ON tags.id = transactions.tag_id
+     WHERE transactions.occurred_at >= ? AND transactions.occurred_at < ?
+     GROUP BY tag
+     ORDER BY total_cents ASC`,
+    start,
+    end
+  );
+}
