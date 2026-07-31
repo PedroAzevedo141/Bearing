@@ -107,6 +107,15 @@ Supõe o Android Studio já instalado, com pelo menos um dispositivo virtual (AV
 
 > Dica: se quiser digitar só `emulator` sem o caminho completo, adicione a pasta do binário (`<SDK do Android>/emulator`) ao `PATH` do sistema.
 
+#### Resetar os dados do app (voltar ao estado de instalação nova)
+
+Apaga todo o SQLite local, o SecureStore (config de biometria) e o cache de IA — não tem como desfazer. O binário `adb` fica em `<SDK do Android>/platform-tools`.
+
+```bash
+adb shell pm clear tech.ordep.bearing    # development build
+adb shell pm clear host.exp.exponent     # Expo Go — atenção: limpa TODOS os apps abertos no Expo Go, não só o Bearing
+```
+
 ### Worker de IA (opcional para rodar o app; obrigatório para as features de IA)
 
 ```bash
