@@ -96,12 +96,18 @@ export default function ImportOCRScreen() {
         throw new Error('PDF sem texto');
       }
       setOcrText(response.extracted_text);
-    } catch {
+    } catch (e) {
       setPdfName(null);
-      Alert.alert(
-        'Não consegui extrair o PDF',
-        'Confira sua conexão e tente um PDF sem senha, com texto legível.'
-      );
+      // Mensagem por tipo de falha — não culpar o PDF do usuário por um erro
+      // de servidor (foi o que confundiu o diagnóstico deste fluxo).
+      const status = (e as { status?: number })?.status;
+      const message =
+        e instanceof Error && e.message === 'PDF sem texto'
+          ? 'Não encontrei texto neste PDF. Use um extrato com texto selecionável (não escaneado).'
+          : typeof status === 'number' && status >= 500
+            ? 'O serviço de IA está indisponível no momento. Tente de novo mais tarde.'
+            : 'Não consegui extrair o PDF. Verifique a conexão e use um PDF sem senha.';
+      Alert.alert('Não consegui extrair o PDF', message);
     } finally {
       setLoadingSource(null);
     }
