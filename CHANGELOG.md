@@ -29,6 +29,7 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 - ADRs 0007 (importação/OCR), 0008 (assinaturas com confirmação humana) e 0009 (chat com tools no client); prompts novos registrados em `docs/AI_PROMPTS.md`.
 - Importação de extrato por PDF (até 20 MB), com consentimento explícito, extração temporária no Worker e revisão do texto antes da classificação.
 - Componentes compartilhados de cabeçalho e estado vazio para dar consistência às áreas principais.
+- Aba **Rotação**: linha "Parcelas do mês" — soma derivada das parcelas ativas, sinalizada como compromisso fixo fora do saldo do período (nunca gravada como transação).
 
 ### Alterado
 

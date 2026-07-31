@@ -24,10 +24,11 @@ import { SwipeableRow } from '../../src/components/SwipeableRow';
 import { TransactionListItem } from '../../src/components/TransactionListItem';
 import { listTags } from '../../src/db/queries/tags';
 import { useBudgets } from '../../src/hooks/useBudgets';
+import { useInstallments } from '../../src/hooks/useInstallments';
 import { useTransactions } from '../../src/hooks/useTransactions';
 import { colors } from '../../src/theme/colors';
 import type { Tag, Transaction } from '../../src/types';
-import { formatCents } from '../../src/utils/money';
+import { formatCents, installmentAmountCents, isInstallmentCompleted } from '../../src/utils/money';
 
 const PERIOD_DAYS = 30;
 
@@ -69,7 +70,21 @@ export default function RotacaoScreen() {
   const { transactions, netFlowCents, addTransaction, editTransaction, removeTransaction } =
     useTransactions(PERIOD_DAYS);
   const { budgets } = useBudgets();
+  const { purchases } = useInstallments();
   const [tags, setTags] = useState<Tag[]>([]);
+
+  // Compromisso mensal das parcelas ativas — derivado, nunca gravado como
+  // transação (por isso não entra no saldo acima). Ver ADR sobre parcelas.
+  const monthlyInstallmentCents = useMemo(
+    () =>
+      purchases
+        .filter((p) => !isInstallmentCompleted(p))
+        .reduce(
+          (sum, p) => sum + installmentAmountCents(p.total_amount_cents, p.installment_count),
+          0
+        ),
+    [purchases]
+  );
   const [showForm, setShowForm] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
@@ -135,6 +150,27 @@ export default function RotacaoScreen() {
           </View>
         </View>
       </View>
+
+      {monthlyInstallmentCents > 0 ? (
+        <View className="mx-5 mt-4 flex-row items-center justify-between rounded-3xl border border-border bg-surface p-4">
+          <View className="flex-row items-center gap-3">
+            <View className="h-10 w-10 items-center justify-center rounded-2xl bg-tint">
+              <MaterialCommunityIcons
+                name="credit-card-clock-outline"
+                size={21}
+                color={colors.primary}
+              />
+            </View>
+            <View>
+              <Text className="text-sm font-bold text-ink">Parcelas do mês</Text>
+              <Text className="text-xs text-muted">Compromisso fixo — não entra no saldo acima</Text>
+            </View>
+          </View>
+          <Text className="text-base font-bold text-ink">
+            {formatCents(monthlyInstallmentCents)}
+          </Text>
+        </View>
+      ) : null}
 
       <View className="mx-4 mt-4 flex-row gap-2">
         <QuickAction
