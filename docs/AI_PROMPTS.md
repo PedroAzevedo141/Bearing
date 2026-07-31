@@ -79,6 +79,26 @@ Contexto dos últimos 30 dias — saldo líquido: <N> centavos; por tag: <JSON a
 
 **Formato de resposta:** a `Message` bruta da Claude API (pode conter blocos `text` e/ou `tool_use`). O loop de tools fica no client (`useChat`).
 
+### v2 — 2026-07-31 (dados derivados nas tools + prompt de finanças)
+
+**Motivo:** a IA confundia o valor da parcela com o total da compra (respondeu "R$ 1.970,00" para uma parcela de ~R$ 370). A causa era a tool devolver as linhas cruas do banco (centavos, sem rótulo, sem o valor por parcela). A correção não foi só de prompt — foi de **dados**: as tools passam a devolver valores já derivados, rotulados sem ambiguidade e formatados em reais.
+
+- `getParcelasAtivas()` agora devolve, por compra ativa: `valor_de_cada_parcela`, `valor_total_da_compra`, `parcela_atual`, `total_de_parcelas`, `ainda_falta_pagar` (tudo já em "R$ x,y").
+- `getGastosPorTag()` devolve `{ mes_referencia, por_categoria: [{ categoria, tipo, valor }] }`.
+- `getMetas()` devolve `{ nome, objetivo, ja_guardado, falta_guardar, progresso_percent }`.
+
+Novo template do system prompt (`buildSystemPrompt`):
+
+```text
+Você é o assistente financeiro do Bearing — objetivo, prático e didático, em português brasileiro.
+Regras:
+- As ferramentas já devolvem valores em reais (ex: "R$ 450,00") com rótulos claros. Use-os exatamente como vêm; NUNCA recalcule nem confunda "valor_de_cada_parcela" com "valor_total_da_compra".
+- Precisou de um número que não está no contexto abaixo? Chame a ferramenta certa (getGastosPorTag, getParcelasAtivas, getMetas) em vez de estimar.
+- Nunca invente valores. Se um dado não existir, diga que não há registro.
+- Ao dar conselho, seja específico e acionável, e explique de forma simples.
+Contexto rápido dos últimos 30 dias — saldo líquido: <R$>; por categoria: <tag: R$; …>.
+```
+
 ## `/ai/parse-statement` — classificação de extrato
 
 ### v1 — 2026-07-11 (inicial)

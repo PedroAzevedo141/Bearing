@@ -25,6 +25,7 @@ import {
 } from '../db/queries/chat';
 import { getBalanceByTag, getBalanceByTagForMonth } from '../db/queries/transactions';
 import { AiServiceError, fetchChat } from '../services/aiService';
+import { formatCents, installmentAmountCents, isInstallmentCompleted } from '../utils/money';
 import type { ChatApiMessage, ChatContentBlock, ChatConversation, ChatMessage } from '../types';
 
 /** Quantas mensagens da conversa entram no payload da API (as antigas ficam salvas). */
@@ -39,6 +40,11 @@ const MAX_TOOL_ITERATIONS = 5;
 /**
  * Executa localmente uma tool pedida pela IA, contra a camada de queries.
  *
+ * As tools devolvem valores já **derivados, rotulados e formatados em reais**
+ * (não os números crus do banco em centavos). Isso evita o erro clássico de a
+ * IA confundir "valor de cada parcela" com "valor total da compra" — ela
+ * recebe os dois campos, nomeados sem ambiguidade, e só precisa repetir.
+ *
  * @param name - Nome da tool (`getGastosPorTag`, `getParcelasAtivas`, `getMetas`).
  * @param input - Argumentos da tool, no shape declarado no Worker.
  * @returns Resultado serializável que volta pra IA como `tool_result`.
@@ -48,23 +54,64 @@ async function executeTool(name: string, input: unknown): Promise<unknown> {
   if (name === 'getGastosPorTag') {
     const { month, year } = (input ?? {}) as { month?: number; year?: number };
     const now = new Date();
-    return getBalanceByTagForMonth(month ?? now.getMonth() + 1, year ?? now.getFullYear());
+    const m = month ?? now.getMonth() + 1;
+    const y = year ?? now.getFullYear();
+    const balances = await getBalanceByTagForMonth(m, y);
+    return {
+      mes_referencia: `${String(m).padStart(2, '0')}/${y}`,
+      // total_cents é negativo para gasto, positivo para entrada líquida na tag.
+      por_categoria: balances.map((b) => ({
+        categoria: b.tag,
+        tipo: b.total_cents < 0 ? 'gasto' : 'entrada',
+        valor: formatCents(Math.abs(b.total_cents)),
+      })),
+    };
   }
   if (name === 'getParcelasAtivas') {
-    return listInstallmentPurchases();
+    const active = (await listInstallmentPurchases()).filter((p) => !isInstallmentCompleted(p));
+    return active.map((p) => {
+      const parcela = installmentAmountCents(p.total_amount_cents, p.installment_count);
+      const pagas = Math.min(p.current_installment - 1, p.installment_count);
+      const restante = (p.installment_count - pagas) * parcela;
+      return {
+        nome: p.name,
+        valor_de_cada_parcela: formatCents(parcela),
+        valor_total_da_compra: formatCents(p.total_amount_cents),
+        parcela_atual: p.current_installment,
+        total_de_parcelas: p.installment_count,
+        ainda_falta_pagar: formatCents(restante),
+      };
+    });
   }
   if (name === 'getMetas') {
-    return listGoals();
+    const goals = await listGoals();
+    return goals.map((g) => ({
+      nome: g.name,
+      objetivo: formatCents(g.target_amount_cents),
+      ja_guardado: formatCents(g.current_amount_cents),
+      falta_guardar: formatCents(Math.max(g.target_amount_cents - g.current_amount_cents, 0)),
+      progresso_percent:
+        g.target_amount_cents > 0
+          ? Math.round((g.current_amount_cents / g.target_amount_cents) * 100)
+          : 0,
+    }));
   }
   throw new Error(`Tool desconhecida: ${name}`);
 }
 
-/** Monta o system prompt com o contexto financeiro fresco (só agregados). */
+/** Monta o system prompt com o contexto financeiro fresco (só agregados, em reais). */
 async function buildSystemPrompt(): Promise<string> {
   const balanceByTag = await getBalanceByTag(CONTEXT_PERIOD_DAYS);
   const netFlow = balanceByTag.reduce((acc, t) => acc + t.total_cents, 0);
-  return `Você é o assistente financeiro do Bearing. Responda de forma concisa, prática e amigável, em português brasileiro. Os valores estão em centavos de real (BRL); ao responder ao usuário escreva em reais (ex: R$ 450,00). Nunca invente números — use as tools para consultar dados reais quando precisar.
-Contexto dos últimos ${CONTEXT_PERIOD_DAYS} dias — saldo líquido: ${netFlow} centavos; por tag: ${JSON.stringify(balanceByTag)}.`;
+  const porCategoria =
+    balanceByTag.map((t) => `${t.tag}: ${formatCents(t.total_cents)}`).join('; ') || 'sem gastos';
+  return `Você é o assistente financeiro do Bearing — objetivo, prático e didático, em português brasileiro.
+Regras:
+- As ferramentas já devolvem valores em reais (ex: "R$ 450,00") com rótulos claros. Use-os exatamente como vêm; NUNCA recalcule nem confunda "valor_de_cada_parcela" com "valor_total_da_compra".
+- Precisou de um número que não está no contexto abaixo? Chame a ferramenta certa (getGastosPorTag, getParcelasAtivas, getMetas) em vez de estimar.
+- Nunca invente valores. Se um dado não existir, diga que não há registro.
+- Ao dar conselho, seja específico e acionável, e explique de forma simples.
+Contexto rápido dos últimos ${CONTEXT_PERIOD_DAYS} dias — saldo líquido: ${formatCents(netFlow)}; por categoria: ${porCategoria}.`;
 }
 
 /** Estado e ações da lista de conversas. */

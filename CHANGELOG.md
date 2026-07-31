@@ -38,6 +38,7 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 ### Corrigido
 
 - Chat: hook fazia `fetch` direto e ignorava o mês/ano da tool `getGastosPorTag`; agora passa pelo `aiService`, é tipado (sem `any`) e a tool consulta o mês pedido. Erro de rede vira estado da tela (Snackbar), não mais mensagem falsa gravada no histórico.
+- Chat dava respostas financeiras erradas (confundia valor da parcela com o total da compra): as tools devolviam números crus em centavos. Agora devolvem valores já derivados, rotulados sem ambiguidade (`valor_de_cada_parcela` vs `valor_total_da_compra`, `ainda_falta_pagar`) e formatados em reais, e o system prompt proíbe recalcular — ver `docs/AI_PROMPTS.md`.
 - Orçamento e Assinaturas travavam o app no Expo Go — os hooks `useBudgets`/`useRecurring` importavam `expo-notifications` direto. Agora as notificações passam pelo `notificationService` (carregamento condicional), como o resto do app.
 - Importação de extrato: OCR nativo travava no Expo Go — agora o módulo é carregado condicionalmente e colar texto é o caminho sempre disponível; a tela de revisão parou de tocar SQL direto (usa a camada de queries).
 
