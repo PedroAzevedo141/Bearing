@@ -12,12 +12,13 @@
  * do Expo Go — dentro dele, os lembretes degradam silenciosamente para
  * no-op em vez de crashar o app.
  *
- * Relacionado: src/db/queries/installments.ts
+ * Relacionado: src/db/queries/installments.ts, src/hooks/useBudgets.ts,
+ * src/hooks/useRecurring.ts
  */
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import type * as ExpoNotifications from 'expo-notifications';
 
-import type { InstallmentPurchase } from '../types';
+import type { InstallmentPurchase, RecurringTransaction } from '../types';
 import { formatCents, installmentAmountCents } from '../utils/money';
 
 declare const require: (id: string) => unknown;
@@ -127,4 +128,67 @@ export async function cancelAllReminders(): Promise<void> {
     return;
   }
   await Notifications.cancelAllScheduledNotificationsAsync();
+}
+
+/**
+ * Dispara imediatamente um aviso de orçamento (usado quando uma tag cruza 90%
+ * do limite mensal). No-op no Expo Go.
+ *
+ * @param tagName - Nome da tag que atingiu o limite.
+ * @param spentCents - Gasto atual da tag no mês, em centavos.
+ * @param limitCents - Limite mensal da tag, em centavos.
+ */
+export async function notifyBudgetThreshold(
+  tagName: string,
+  spentCents: number,
+  limitCents: number
+): Promise<void> {
+  if (!Notifications) {
+    return;
+  }
+  const granted = await requestNotificationPermission();
+  if (!granted) {
+    return;
+  }
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: 'Atenção ao orçamento ⚠️',
+      body: `"${tagName}": ${formatCents(spentCents)} de ${formatCents(limitCents)} este mês (90%+).`,
+    },
+    trigger: null, // imediato
+  });
+}
+
+/**
+ * Agenda um lembrete mensal recorrente de uma assinatura, no dia do mês
+ * escolhido. Ao tocar, a notificação carrega dados de deep link para a tela
+ * de confirmação (o app nunca lança a transação sozinho — ver ADR-0008).
+ * No-op no Expo Go; devolve o ID da notificação (ou null).
+ *
+ * @param recurring - Assinatura recém-cadastrada.
+ * @returns ID da notificação agendada, ou null.
+ */
+export async function scheduleRecurringReminder(
+  recurring: RecurringTransaction
+): Promise<string | null> {
+  if (!Notifications) {
+    return null;
+  }
+  const granted = await requestNotificationPermission();
+  if (!granted) {
+    return null;
+  }
+  return Notifications.scheduleNotificationAsync({
+    content: {
+      title: 'Assinatura recorrente 🗓️',
+      body: `Chegou o dia de registrar "${recurring.name}" (${formatCents(recurring.amount_cents)}). Toque para confirmar.`,
+      data: { href: `/assinaturas/confirm/${recurring.id}` },
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.MONTHLY,
+      day: recurring.day_of_month,
+      hour: REMINDER_HOUR,
+      minute: 0,
+    },
+  });
 }

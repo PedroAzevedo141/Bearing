@@ -15,11 +15,19 @@ import { colors } from './colors';
 /** Tema MD3 do Paper com a paleta do app no lugar das cores padrão (roxo). */
 export const paperTheme = {
   ...MD3LightTheme,
+  roundness: 4,
   colors: {
     ...MD3LightTheme.colors,
     primary: colors.primary,
+    secondary: colors.accent,
+    tertiary: colors.positive,
     background: colors.background,
     surface: colors.surface,
+    surfaceVariant: colors.tint,
+    outline: colors.border,
+    outlineVariant: colors.border,
+    onSurface: colors.ink,
+    onSurfaceVariant: colors.muted,
     error: colors.negative,
   },
 };

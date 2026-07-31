@@ -16,7 +16,12 @@ import { colors } from '../theme/colors';
 interface SwipeableRowProps {
   /** Conteúdo normal da linha (o card/item já existente). */
   children: React.ReactNode;
-  onEdit: () => void;
+  /**
+   * Ação "Editar". Opcional: linhas que não têm edição por swipe (ex: uma
+   * conversa de chat, um item da revisão de importação) omitem essa prop e
+   * só revelam "Excluir".
+   */
+  onEdit?: () => void;
   onDelete: () => void;
 }
 
@@ -25,12 +30,14 @@ export function SwipeableRow({ children, onEdit, onDelete }: SwipeableRowProps) 
     <Swipeable
       renderRightActions={() => (
         <>
-          <TouchableOpacity
-            style={[styles.action, { backgroundColor: colors.primary }]}
-            onPress={onEdit}
-          >
-            <Text style={styles.actionLabel}>Editar</Text>
-          </TouchableOpacity>
+          {onEdit ? (
+            <TouchableOpacity
+              style={[styles.action, { backgroundColor: colors.primary }]}
+              onPress={onEdit}
+            >
+              <Text style={styles.actionLabel}>Editar</Text>
+            </TouchableOpacity>
+          ) : null}
           <TouchableOpacity
             style={[styles.action, { backgroundColor: colors.negative }]}
             onPress={onDelete}

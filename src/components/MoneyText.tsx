@@ -6,6 +6,7 @@
 import React from 'react';
 import { StyleSheet, Text, type TextStyle } from 'react-native';
 
+import { colors } from '../theme/colors';
 import { formatCents } from '../utils/money';
 
 interface MoneyTextProps {
@@ -21,8 +22,8 @@ export function MoneyText({ cents, style }: MoneyTextProps) {
 }
 
 const styles = StyleSheet.create({
-  base: { fontVariant: ['tabular-nums'], fontWeight: '600' },
-  positive: { color: '#1B7F4D' },
-  negative: { color: '#C0392B' },
-  neutral: { color: '#666666' },
+  base: { fontVariant: ['tabular-nums'], fontWeight: '700' },
+  positive: { color: colors.positive },
+  negative: { color: colors.negative },
+  neutral: { color: colors.muted },
 });

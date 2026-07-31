@@ -12,17 +12,23 @@
 /** Paleta de cores do app. Mudou aqui, muda também em tailwind.config.js. */
 export const colors = {
   /** Cor de destaque principal (botões primários, links, progresso). */
-  primary: '#2E86AB',
+  primary: '#315CF5',
+  /** Cor de apoio para progresso, seleção e indicadores. */
+  accent: '#16A889',
+  /** Azul-marinho usado em superfícies de alto contraste. */
+  ink: '#101828',
   /** Sucesso / valores positivos (entradas, metas concluídas). */
-  positive: '#1B7F4D',
+  positive: '#11845B',
   /** Erro / valores negativos / ações destrutivas (saídas, excluir). */
-  negative: '#C0392B',
+  negative: '#D1465B',
   /** Fundo padrão das telas. */
-  background: '#F5F5F2',
+  background: '#F4F7FB',
   /** Fundo de cards e superfícies elevadas. */
   surface: '#FFFFFF',
   /** Bordas e divisores. */
-  border: '#DDDDDD',
+  border: '#E3E9F2',
   /** Texto secundário / desabilitado. */
-  muted: '#888888',
+  muted: '#667085',
+  /** Fundo suave para áreas selecionadas e destaques discretos. */
+  tint: '#EAF0FF',
 } as const;

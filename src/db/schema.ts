@@ -121,3 +121,49 @@ INSERT INTO installment_purchases_new SELECT * FROM installment_purchases;
 DROP TABLE installment_purchases;
 ALTER TABLE installment_purchases_new RENAME TO installment_purchases;
 `;
+
+/**
+ * SQL da migration v3: Chat
+ */
+export const SCHEMA_V3_CHAT = `
+CREATE TABLE IF NOT EXISTS chat_conversations (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id TEXT PRIMARY KEY,
+  conversation_id TEXT NOT NULL REFERENCES chat_conversations(id),
+  role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
+  content TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+`;
+
+/**
+ * SQL da migration v4: Orçamentos
+ */
+export const SCHEMA_V4_BUDGETS = `
+CREATE TABLE IF NOT EXISTS budgets (
+  id TEXT PRIMARY KEY,
+  tag_id TEXT NOT NULL REFERENCES tags(id),
+  limit_cents INTEGER NOT NULL CHECK (limit_cents > 0),
+  created_at INTEGER NOT NULL
+);
+`;
+
+/**
+ * SQL da migration v5: Assinaturas Recorrentes
+ */
+export const SCHEMA_V5_RECURRING = `
+CREATE TABLE IF NOT EXISTS recurring_transactions (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  amount_cents INTEGER NOT NULL CHECK (amount_cents > 0),
+  day_of_month INTEGER NOT NULL CHECK (day_of_month BETWEEN 1 AND 31),
+  tag_id TEXT REFERENCES tags(id),
+  created_at INTEGER NOT NULL
+);
+`;
