@@ -22,6 +22,8 @@ export interface NewTransaction {
   description: string | null;
   /** Unix timestamp (segundos). Default: agora. */
   occurred_at?: number;
+  /** Assinatura que originou a cobrança, quando a transação vem de uma. */
+  recurring_id?: string | null;
 }
 
 /**
@@ -83,10 +85,11 @@ export async function createTransaction(data: NewTransaction): Promise<Transacti
     description: data.description,
     occurred_at: data.occurred_at ?? now,
     created_at: now,
+    recurring_id: data.recurring_id ?? null,
   };
   await db.runAsync(
-    `INSERT INTO transactions (id, account_id, tag_id, amount_cents, type, description, occurred_at, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO transactions (id, account_id, tag_id, amount_cents, type, description, occurred_at, created_at, recurring_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     tx.id,
     tx.account_id,
     tx.tag_id,
@@ -94,7 +97,8 @@ export async function createTransaction(data: NewTransaction): Promise<Transacti
     tx.type,
     tx.description,
     tx.occurred_at,
-    tx.created_at
+    tx.created_at,
+    tx.recurring_id ?? null
   );
   return tx;
 }

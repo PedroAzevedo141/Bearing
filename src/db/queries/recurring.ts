@@ -50,6 +50,52 @@ export async function getRecurringById(id: string): Promise<RecurringWithTag | n
 }
 
 /**
+ * Assinaturas de uma competência que ainda não viraram transação.
+ *
+ * "Pendente" é quem já venceu no mês e não tem transação vinculada. O
+ * vencimento é comparado só no mês corrente: em meses passados, todas as
+ * assinaturas já venceram, então basta a ausência do lançamento.
+ *
+ * O dia do vencimento é limitado ao último dia do mês, senão uma assinatura no
+ * dia 31 nunca apareceria como vencida em fevereiro.
+ *
+ * @param month - Mês 1-12.
+ * @param year - Ano com 4 dígitos.
+ * @param now - Momento de referência; default é agora. Existe para testes.
+ * @returns Assinaturas pendentes, ordenadas pelo dia do mês.
+ */
+export async function listPendingRecurring(
+  month: number,
+  year: number,
+  now: Date = new Date()
+): Promise<RecurringWithTag[]> {
+  const db = await getDb();
+  const start = Math.floor(new Date(year, month - 1, 1).getTime() / 1000);
+  const end = Math.floor(new Date(year, month, 1).getTime() / 1000);
+
+  const rows = await db.getAllAsync<RecurringWithTag>(
+    `SELECT r.*, t.name AS tagName
+     FROM recurring_transactions r
+     LEFT JOIN tags t ON r.tag_id = t.id
+     WHERE NOT EXISTS (
+       SELECT 1 FROM transactions tx
+       WHERE tx.recurring_id = r.id
+         AND tx.occurred_at >= ? AND tx.occurred_at < ?
+     )
+     ORDER BY r.day_of_month ASC`,
+    start,
+    end
+  );
+
+  const isCurrentMonth = now.getFullYear() === year && now.getMonth() === month - 1;
+  if (!isCurrentMonth) {
+    return rows;
+  }
+  const lastDayOfMonth = new Date(year, month, 0).getDate();
+  return rows.filter((row) => Math.min(row.day_of_month, lastDayOfMonth) <= now.getDate());
+}
+
+/**
  * Cadastra uma assinatura recorrente.
  *
  * @param name - Nome (ex: "Netflix").

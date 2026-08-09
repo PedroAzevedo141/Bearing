@@ -34,11 +34,13 @@ export const BACKUP_FORMAT_TAG = 'bearing-backup';
 export const BACKUP_TABLES = [
   'accounts',
   'tags',
+  // Antes de `transactions`: a v7 criou a FK transactions.recurring_id, e a
+  // restauração roda com `PRAGMA foreign_keys = ON`.
+  'recurring_transactions',
   'transactions',
   'installment_purchases',
   'goals',
   'budgets',
-  'recurring_transactions',
   'chat_conversations',
   'chat_messages',
 ] as const;

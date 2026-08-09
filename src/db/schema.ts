@@ -199,3 +199,24 @@ INSERT INTO installment_purchases_new
 DROP TABLE installment_purchases;
 ALTER TABLE installment_purchases_new RENAME TO installment_purchases;
 `;
+
+/**
+ * SQL da migration v7: liga uma transação à assinatura que a originou.
+ *
+ * Sem esse vínculo não há como saber se a cobrança do mês de uma assinatura já
+ * foi lançada, e o app dependia inteiramente de o usuário ter visto a
+ * notificação: se ela passasse batida, a despesa nunca era registrada e o saldo
+ * e o orçamento ficavam silenciosamente errados.
+ *
+ * Deduzir por semelhança de descrição foi descartado — quebraria assim que o
+ * usuário editasse o texto da transação, e falha silenciosa em dado financeiro
+ * é justamente o que se quer evitar aqui.
+ *
+ * A coluna é opcional: transação avulsa continua sem vínculo. `ALTER TABLE ...
+ * ADD COLUMN` basta (não há `CHECK` novo), então não é preciso reconstruir a
+ * tabela como nas v2 e v6.
+ */
+export const SCHEMA_V7_RECURRING_LINK = `
+ALTER TABLE transactions ADD COLUMN recurring_id TEXT REFERENCES recurring_transactions(id);
+CREATE INDEX IF NOT EXISTS idx_transactions_recurring_id ON transactions(recurring_id);
+`;

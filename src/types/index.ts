@@ -54,6 +54,11 @@ export interface Transaction {
   occurred_at: number;
   /** Unix timestamp (segundos) da criação do registro. */
   created_at: number;
+  /**
+   * Assinatura que originou esta cobrança, quando houver. É o que permite
+   * saber que a assinatura do mês já foi lançada — ver ADR-0008.
+   */
+  recurring_id?: string | null;
 }
 
 /**

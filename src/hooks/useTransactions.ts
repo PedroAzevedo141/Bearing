@@ -25,6 +25,11 @@ export interface TransactionInput {
   type: TransactionType;
   description: string | null;
   tagName: string | null;
+  /**
+   * Assinatura que originou a cobrança. Só a tela de confirmação de assinatura
+   * preenche isto; é o vínculo que faz a pendência do mês sumir da lista.
+   */
+  recurringId?: string | null;
 }
 
 /** Estado e ações expostos pelo hook. */
@@ -96,6 +101,7 @@ export function useTransactions(month: MonthRef): UseTransactionsResult {
         amount_cents: input.amountCents,
         type: input.type,
         description: input.description,
+        recurring_id: input.recurringId ?? null,
       });
       await refresh();
     },

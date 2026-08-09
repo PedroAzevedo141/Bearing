@@ -83,7 +83,9 @@ export default function ConfirmRecurringScreen() {
           }}
           initialTagName={recurring.tagName}
           onSubmit={async (input) => {
-            await addTransaction(input);
+            // O vínculo com a assinatura é o que tira esta cobrança da lista
+            // de pendências do mês na Rotação.
+            await addTransaction({ ...input, recurringId: recurring.id });
             router.replace('/(tabs)/rotacao'); // Volta para a tela principal
           }}
           onCancel={() => router.back()}

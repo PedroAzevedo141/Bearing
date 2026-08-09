@@ -63,6 +63,18 @@ export async function saveParsedItems(
 
   for (const item of items) {
     if (item.is_subscription) {
+      // A recorrência vem primeiro para a cobrança já nascer vinculada a ela —
+      // sem o vínculo, a Rotação continuaria cobrando esta assinatura como
+      // pendente do mês mesmo tendo acabado de importá-la.
+      const tracked = existingRecurring.find((r) => isNameSimilar(r.name, item.description));
+      let recurringId = tracked?.id ?? null;
+      if (!tracked) {
+        const dayOfMonth = new Date(item.occurred_at * 1000).getDate();
+        const created = await createRecurring(item.description, item.amount_cents, dayOfMonth, null);
+        recurringId = created.id;
+        // Evita duplicar entre itens do mesmo extrato (dois lançamentos iguais).
+        existingRecurring.push({ ...created, tagName: null });
+      }
       // A cobrança do mês entra como transação normal (conta no saldo).
       await createTransaction({
         account_id: accountId,
@@ -71,15 +83,8 @@ export async function saveParsedItems(
         type: item.type,
         description: item.description,
         occurred_at: item.occurred_at,
+        recurring_id: recurringId,
       });
-      // Só cadastra a recorrência se ainda não houver uma com nome parecido.
-      const alreadyTracked = existingRecurring.some((r) => isNameSimilar(r.name, item.description));
-      if (!alreadyTracked) {
-        const dayOfMonth = new Date(item.occurred_at * 1000).getDate();
-        const created = await createRecurring(item.description, item.amount_cents, dayOfMonth, null);
-        // Evita duplicar entre itens do mesmo extrato (dois lançamentos iguais).
-        existingRecurring.push({ ...created, tagName: null });
-      }
     } else if (item.is_installment && item.installment_current && item.installment_total) {
       // O extrato é a fonte de verdade sobre em que parcela a compra está
       // ("parcela 3/10 em 05/03"). Como a posição é derivada da data da 1ª

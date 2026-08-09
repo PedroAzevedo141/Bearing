@@ -17,6 +17,7 @@ import {
   SCHEMA_V4_BUDGETS,
   SCHEMA_V5_RECURRING,
   SCHEMA_V6_DERIVED_INSTALLMENT,
+  SCHEMA_V7_RECURRING_LINK,
 } from '../schema';
 
 /** Uma mudança de schema aplicável de forma idempotente e ordenada. */
@@ -37,4 +38,5 @@ export const MIGRATIONS: Migration[] = [
   { version: 4, name: 'add-budgets', statements: SCHEMA_V4_BUDGETS },
   { version: 5, name: 'add-recurring', statements: SCHEMA_V5_RECURRING },
   { version: 6, name: 'derive-current-installment', statements: SCHEMA_V6_DERIVED_INSTALLMENT },
+  { version: 7, name: 'link-transaction-to-recurring', statements: SCHEMA_V7_RECURRING_LINK },
 ];

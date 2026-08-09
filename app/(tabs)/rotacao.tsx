@@ -25,6 +25,7 @@ import { TransactionListItem } from '../../src/components/TransactionListItem';
 import { listTags } from '../../src/db/queries/tags';
 import { useBudgets } from '../../src/hooks/useBudgets';
 import { useInstallments } from '../../src/hooks/useInstallments';
+import { usePendingRecurring } from '../../src/hooks/useRecurring';
 import { useTransactions } from '../../src/hooks/useTransactions';
 import { colors } from '../../src/theme/colors';
 import type { Tag, Transaction } from '../../src/types';
@@ -123,6 +124,7 @@ export default function RotacaoScreen() {
   } = useTransactions(month);
   const { budgets } = useBudgets();
   const { purchases } = useInstallments();
+  const { pending: pendingRecurring } = usePendingRecurring(month);
   const [tags, setTags] = useState<Tag[]>([]);
 
   // Compromisso mensal das parcelas ativas — derivado, nunca gravado como
@@ -252,6 +254,40 @@ export default function RotacaoScreen() {
           <Text className="text-base font-bold text-ink">
             {formatCents(monthlyInstallmentCents)}
           </Text>
+        </View>
+      ) : null}
+
+      {pendingRecurring.length > 0 ? (
+        <View className="mx-5 mt-4 rounded-3xl border border-border bg-surface p-4">
+          <View className="mb-3 flex-row items-center gap-3">
+            <View className="h-10 w-10 items-center justify-center rounded-2xl bg-tint">
+              <MaterialCommunityIcons name="bell-alert-outline" size={21} color={colors.accent} />
+            </View>
+            <View className="flex-1">
+              <Text className="text-sm font-bold text-ink">Assinaturas a confirmar</Text>
+              <Text className="text-xs text-muted">
+                Já venceram neste mês e ainda não entraram no saldo
+              </Text>
+            </View>
+          </View>
+          {pendingRecurring.map((item) => (
+            <TouchableOpacity
+              key={item.id}
+              className="mb-2 flex-row items-center justify-between rounded-2xl bg-background px-3 py-2.5 last:mb-0"
+              onPress={() => router.push(`/assinaturas/confirm/${item.id}`)}
+              accessibilityRole="button"
+              accessibilityLabel={`Confirmar ${item.name}`}
+            >
+              <View className="flex-1">
+                <Text className="text-sm font-semibold text-ink">{item.name}</Text>
+                <Text className="text-xs text-muted">Vence dia {item.day_of_month}</Text>
+              </View>
+              <Text className="mr-2 text-sm font-bold text-ink">
+                {formatCents(item.amount_cents)}
+              </Text>
+              <MaterialCommunityIcons name="chevron-right" size={20} color={colors.muted} />
+            </TouchableOpacity>
+          ))}
         </View>
       ) : null}
 

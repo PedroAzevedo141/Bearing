@@ -64,6 +64,8 @@ Orçamento mensal definido para uma tag específica. É recorrente por padrão �
 
 Assinaturas ou transações recorrentes. Armazena o valor, nome, tag e `day_of_month` (1 a 31). O app usa notificações locais para avisar o usuário no dia do mês correspondente; ao abrir a notificação, o usuário aprova e gera a transação real. Nunca criamos transações automaticamente, garantindo a revisão humana.
 
+A transação gerada guarda `recurring_id` (migration v7), e é esse vínculo que responde "a assinatura deste mês já foi lançada?". Sem ele, o app dependia inteiramente de o usuário ter visto a notificação: se ela passasse batida, a despesa nunca era registrada e o saldo e o orçamento ficavam errados **em silêncio** — o pior tipo de erro num app de dinheiro, porque a tela continua plausível. Deduzir o vínculo por semelhança de descrição foi descartado: quebraria assim que o usuário editasse o texto da transação, reintroduzindo a mesma falha silenciosa. De brinde, o vínculo responde também "quanto já gastei com essa assinatura no ano".
+
 ## Migrations
 
 Runner próprio em [src/db/index.ts](../src/db/index.ts) usando `PRAGMA user_version` como marcador — sem dependência extra para uma necessidade simples. Cada migration roda dentro de uma transação: ou aplica inteira, ou o banco fica na versão anterior consistente.
@@ -76,5 +78,6 @@ Runner próprio em [src/db/index.ts](../src/db/index.ts) usando `PRAGMA user_ver
 | 4 | `add-budgets` | Tabela `budgets` para orçamento mensal por tag |
 | 5 | `add-recurring` | Tabela `recurring_transactions` para assinaturas mensais |
 | 6 | `derive-current-installment` | Remove `current_installment` de `installment_purchases` — a posição passa a ser derivada de `first_due_date` |
+| 7 | `link-transaction-to-recurring` | `transactions.recurring_id` (FK opcional) — permite saber se a assinatura do mês já foi lançada |
 
 **Por que a v2 trava isso no banco além da UI:** validação de formulário evita erro do usuário, mas não evita um bug de código (ex: um cálculo que gere `amount_cents` negativo por engano) gravando dado inconsistente silenciosamente — defesa em profundidade. SQLite não suporta `ALTER TABLE ... ADD CONSTRAINT` nem adicionar `CHECK` a uma coluna existente; a v2 usa o procedimento padrão do SQLite para isso (criar tabela nova com o `CHECK`, copiar os dados, apagar a antiga, renomear) — é o padrão a seguir em qualquer migration futura que precise adicionar `CHECK` a uma tabela já existente.
