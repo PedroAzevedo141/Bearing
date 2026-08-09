@@ -316,10 +316,10 @@ export default function RotacaoScreen() {
           onPress={() => router.push('/assinaturas')}
         />
         <QuickAction
-          icon="database-export-outline"
-          label="Backup"
-          hint="Exportar e restaurar"
-          onPress={() => router.push('/backup')}
+          icon="cog-outline"
+          label="Ajustes"
+          hint="Tema e backup"
+          onPress={() => router.push('/ajustes')}
         />
       </View>
 

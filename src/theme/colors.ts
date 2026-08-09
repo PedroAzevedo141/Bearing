@@ -44,6 +44,11 @@ export interface ThemeColors {
   spotlight: string;
   /** Ícone de destaque sobre `spotlight`. */
   onSpotlight: string;
+  /**
+   * Cor de contraste sobre `primary`. **Não** é branco nos dois temas: no
+   * escuro `primary` é um azul claro, e texto branco sobre ele fica ilegível.
+   */
+  onPrimary: string;
   /** Trilho de barra de progresso. */
   track: string;
 }
@@ -62,6 +67,7 @@ export const lightColors: ThemeColors = {
   tint: '#EAF0FF',
   spotlight: '#101828',
   onSpotlight: '#9EB4FF',
+  onPrimary: '#FFFFFF',
   track: '#F1F5F9',
 };
 
@@ -86,6 +92,7 @@ export const darkColors: ThemeColors = {
   tint: '#202B4A',
   spotlight: '#1E273A',
   onSpotlight: '#9EB4FF',
+  onPrimary: '#0D111B',
   track: '#2A3346',
 };
 

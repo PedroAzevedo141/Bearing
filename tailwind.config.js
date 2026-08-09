@@ -30,6 +30,7 @@ module.exports = {
         tint: 'rgb(var(--color-tint) / <alpha-value>)',
         spotlight: 'rgb(var(--color-spotlight) / <alpha-value>)',
         'on-spotlight': 'rgb(var(--color-on-spotlight) / <alpha-value>)',
+        'on-primary': 'rgb(var(--color-on-primary) / <alpha-value>)',
         track: 'rgb(var(--color-track) / <alpha-value>)',
       },
     },

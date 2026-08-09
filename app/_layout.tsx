@@ -28,11 +28,15 @@ import { router } from 'expo-router';
 
 import { useThemeColors } from '../src/theme/colors';
 import { usePaperTheme } from '../src/theme/paperTheme';
+import { useThemePreference } from '../src/theme/themePreference';
 
 type LockState = 'checking' | 'locked' | 'unlocked';
 
 export default function RootLayout() {
   const [lockState, setLockState] = useState<LockState>('checking');
+  // Lê e aplica a preferência gravada antes de qualquer tela montar; sem
+  // isso o app voltaria ao tema do sistema a cada abertura.
+  useThemePreference();
   const paperTheme = usePaperTheme();
   const themeColors = useThemeColors();
 

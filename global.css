@@ -34,6 +34,8 @@
     --color-spotlight: 16 24 40;
     /* Ícone de destaque sobre o spotlight. */
     --color-on-spotlight: 158 180 255;
+    /* Contraste sobre `primary` — no escuro não pode ser branco. */
+    --color-on-primary: 255 255 255;
     /* Trilho de barra de progresso. */
     --color-track: 241 245 249;
   }
@@ -53,6 +55,7 @@
 
       --color-spotlight: 30 39 58;
       --color-on-spotlight: 158 180 255;
+      --color-on-primary: 13 17 27;
       --color-track: 42 51 70;
     }
   }

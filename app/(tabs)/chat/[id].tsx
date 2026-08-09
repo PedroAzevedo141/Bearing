@@ -92,7 +92,7 @@ export default function ChatSessionScreen() {
             icon="arrow-up"
             mode="contained"
             containerColor={themeColors.primary}
-            iconColor="#FFFFFF"
+            iconColor={themeColors.onPrimary}
             size={22}
             onPress={handleSend}
             disabled={!inputText.trim()}

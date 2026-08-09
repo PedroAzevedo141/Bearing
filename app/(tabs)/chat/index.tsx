@@ -59,7 +59,7 @@ export default function ChatIndexScreen() {
                 onPress={() => setIsCreating(true)}
                 style={{ marginTop: 16, alignSelf: 'flex-start' }}
                 buttonColor="#FFFFFF"
-                textColor={themeColors.ink}
+                textColor={themeColors.spotlight}
               >
                 Nova conversa
               </Button>

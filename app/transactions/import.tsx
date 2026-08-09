@@ -197,7 +197,7 @@ export default function ImportOCRScreen() {
             onPress={handlePickPdf}
             disabled={loading}
             buttonColor="#FFFFFF"
-            textColor={themeColors.ink}
+            textColor={themeColors.spotlight}
             style={{ marginTop: 16 }}
           >
             Escolher arquivo

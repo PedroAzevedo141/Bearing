@@ -41,7 +41,7 @@ function buildTheme(base: typeof MD3LightTheme, palette: ThemeColors) {
       onTertiaryContainer: palette.primary,
       errorContainer: palette.tint,
       onErrorContainer: palette.negative,
-      onPrimary: '#FFFFFF',
+      onPrimary: palette.onPrimary,
       elevation: {
         ...base.colors.elevation,
         level1: palette.surface,

@@ -281,3 +281,21 @@ CREATE INDEX IF NOT EXISTS idx_transactions_occurred_at ON transactions(occurred
 CREATE INDEX IF NOT EXISTS idx_transactions_recurring_id ON transactions(recurring_id);
 DROP TABLE IF EXISTS accounts;
 `;
+
+/**
+ * SQL da migration v10: preferências do app.
+ *
+ * Tabela chave/valor genérica em vez de uma coluna por preferência: são
+ * escolhas de interface, sem relação entre si, e cada nova exigiria uma
+ * migration própria. Como já existe SQLite aberto e migrado, guardar aqui evita
+ * trazer `AsyncStorage` só para isto — uma dependência a mais para um dado que
+ * o banco já sabe persistir.
+ *
+ * Não guarda nada sensível: preferência de tema não é dado financeiro.
+ */
+export const SCHEMA_V10_SETTINGS = `
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+`;

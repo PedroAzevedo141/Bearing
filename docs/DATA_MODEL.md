@@ -78,6 +78,12 @@ Assinaturas ou transações recorrentes. Armazena o valor, nome, tag e `day_of_m
 
 A transação gerada guarda `recurring_id` (migration v7), e é esse vínculo que responde "a assinatura deste mês já foi lançada?". Sem ele, o app dependia inteiramente de o usuário ter visto a notificação: se ela passasse batida, a despesa nunca era registrada e o saldo e o orçamento ficavam errados **em silêncio** — o pior tipo de erro num app de dinheiro, porque a tela continua plausível. Deduzir o vínculo por semelhança de descrição foi descartado: quebraria assim que o usuário editasse o texto da transação, reintroduzindo a mesma falha silenciosa. De brinde, o vínculo responde também "quanto já gastei com essa assinatura no ano".
 
+### `settings`
+
+Preferências de interface, em chave/valor (hoje só `theme_preference`). Tabela genérica em vez de uma coluna por preferência: são escolhas sem relação entre si, e cada nova exigiria uma migration própria.
+
+Fica no SQLite, e não em `AsyncStorage`, porque o banco já está aberto e migrado quando o app sobe — trazer outra dependência para persistir um enum seria custo sem contrapartida. Não guarda nada sensível: preferência de tema não é dado financeiro.
+
 ## Migrations
 
 Runner próprio em [src/db/index.ts](../src/db/index.ts) usando `PRAGMA user_version` como marcador — sem dependência extra para uma necessidade simples. Cada migration roda dentro de uma transação: ou aplica inteira, ou o banco fica na versão anterior consistente.
@@ -93,5 +99,6 @@ Runner próprio em [src/db/index.ts](../src/db/index.ts) usando `PRAGMA user_ver
 | 7 | `link-transaction-to-recurring` | `transactions.recurring_id` (FK opcional) — permite saber se a assinatura do mês já foi lançada |
 | 8 | `budget-effective-from` | `budgets.effective_from` + índice único `(tag_id, effective_from)` — limite versionado no tempo |
 | 9 | `drop-accounts` | Remove `accounts` e `transactions.account_id` — conceito nunca exposto na UI |
+| 10 | `add-settings` | Tabela `settings` (chave/valor) para preferências de interface |
 
 **Por que a v2 trava isso no banco além da UI:** validação de formulário evita erro do usuário, mas não evita um bug de código (ex: um cálculo que gere `amount_cents` negativo por engano) gravando dado inconsistente silenciosamente — defesa em profundidade. SQLite não suporta `ALTER TABLE ... ADD CONSTRAINT` nem adicionar `CHECK` a uma coluna existente; a v2 usa o procedimento padrão do SQLite para isso (criar tabela nova com o `CHECK`, copiar os dados, apagar a antiga, renomear) — é o padrão a seguir em qualquer migration futura que precise adicionar `CHECK` a uma tabela já existente.
