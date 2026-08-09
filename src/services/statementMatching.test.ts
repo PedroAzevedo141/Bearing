@@ -31,7 +31,6 @@ describe('statementService', () => {
         tag_id: null,
         total_amount_cents: 18000, // 6x 30.00
         installment_count: 6,
-        current_installment: 1,
         first_due_date: 1000,
         created_at: 1000,
       },
@@ -41,7 +40,6 @@ describe('statementService', () => {
         tag_id: null,
         total_amount_cents: 20000, // 4x 50.00
         installment_count: 4,
-        current_installment: 2,
         first_due_date: 1000,
         created_at: 1000,
       }

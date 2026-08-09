@@ -18,6 +18,7 @@ import {
 import { createRecurring, listRecurring } from '../db/queries/recurring';
 import { createTransaction } from '../db/queries/transactions';
 import type { ParsedStatementItem } from '../types';
+import { firstDueDateFor } from '../utils/money';
 
 export { findMatchingInstallment, isNameSimilar } from './statementMatching';
 
@@ -80,17 +81,22 @@ export async function saveParsedItems(
         existingRecurring.push({ ...created, tagName: null });
       }
     } else if (item.is_installment && item.installment_current && item.installment_total) {
+      // O extrato é a fonte de verdade sobre em que parcela a compra está
+      // ("parcela 3/10 em 05/03"). Como a posição é derivada da data da 1ª
+      // parcela, corrigir o registro significa reancorar o cronograma — não
+      // mexer num contador.
+      const anchoredFirstDue = firstDueDateFor(item.occurred_at, item.installment_current);
       const match = findMatchingInstallment(item, activeInstallments);
       if (match) {
-        // Só avança a parcela atual se o extrato estiver à frente do registrado.
-        if (item.installment_current > match.current_installment) {
+        // Só reancora se o extrato apontar um começo anterior ao registrado:
+        // uma cobrança atrasada não deve empurrar a compra para o futuro.
+        if (anchoredFirstDue < match.first_due_date) {
           await updateInstallmentPurchase(match.id, {
             name: match.name,
             tag_id: match.tag_id,
             total_amount_cents: match.total_amount_cents,
             installment_count: match.installment_count,
-            current_installment: item.installment_current,
-            first_due_date: match.first_due_date,
+            first_due_date: anchoredFirstDue,
           });
         }
       } else {
@@ -99,8 +105,7 @@ export async function saveParsedItems(
           tag_id: null,
           total_amount_cents: item.amount_cents * item.installment_total,
           installment_count: item.installment_total,
-          current_installment: item.installment_current,
-          first_due_date: item.occurred_at,
+          first_due_date: anchoredFirstDue,
         });
       }
     } else {

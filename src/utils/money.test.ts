@@ -10,6 +10,8 @@ import { describe, expect, it } from 'vitest';
 import type { Transaction } from '../types';
 import {
   calculateNetFlow,
+  currentInstallmentFor,
+  firstDueDateFor,
   formatCents,
   installmentAmountCents,
   isInstallmentCompleted,
@@ -107,22 +109,76 @@ describe('installmentAmountCents', () => {
   });
 });
 
+/** Converte uma data local em unix timestamp (segundos), como o banco guarda. */
+function ts(year: number, month: number, day: number): number {
+  return Math.floor(new Date(year, month - 1, day).getTime() / 1000);
+}
+
+describe('currentInstallmentFor', () => {
+  it('é a 1ª parcela no próprio dia do vencimento', () => {
+    const purchase = { first_due_date: ts(2026, 1, 10), installment_count: 10 };
+    expect(currentInstallmentFor(purchase, new Date(2026, 0, 10))).toBe(1);
+  });
+
+  it('continua na 1ª parcela antes de a compra começar', () => {
+    const purchase = { first_due_date: ts(2026, 5, 10), installment_count: 10 };
+    expect(currentInstallmentFor(purchase, new Date(2026, 0, 15))).toBe(1);
+  });
+
+  it('avança sozinha conforme os meses passam', () => {
+    const purchase = { first_due_date: ts(2026, 1, 10), installment_count: 10 };
+    expect(currentInstallmentFor(purchase, new Date(2026, 2, 15))).toBe(3);
+  });
+
+  it('só vira a parcela no dia do vencimento, não na virada do mês', () => {
+    const purchase = { first_due_date: ts(2026, 1, 20), installment_count: 10 };
+    expect(currentInstallmentFor(purchase, new Date(2026, 1, 19))).toBe(1);
+    expect(currentInstallmentFor(purchase, new Date(2026, 1, 20))).toBe(2);
+  });
+
+  it('não trava em fevereiro quando o vencimento é dia 31', () => {
+    const purchase = { first_due_date: ts(2026, 1, 31), installment_count: 10 };
+    expect(currentInstallmentFor(purchase, new Date(2026, 1, 28))).toBe(2);
+  });
+
+  it('para em installment_count + 1 depois de quitada', () => {
+    const purchase = { first_due_date: ts(2020, 1, 10), installment_count: 10 };
+    expect(currentInstallmentFor(purchase, new Date(2026, 0, 10))).toBe(11);
+  });
+});
+
 describe('isInstallmentCompleted', () => {
-  it('é falso enquanto a parcela atual está dentro do total', () => {
-    expect(
-      isInstallmentCompleted({ current_installment: 5, installment_count: 10 })
-    ).toBe(false);
+  it('é falso no meio do cronograma', () => {
+    const purchase = { first_due_date: ts(2026, 1, 10), installment_count: 10 };
+    expect(isInstallmentCompleted(purchase, new Date(2026, 4, 10))).toBe(false);
   });
 
   it('é falso na última parcela ainda em aberto', () => {
-    expect(
-      isInstallmentCompleted({ current_installment: 10, installment_count: 10 })
-    ).toBe(false);
+    // 10 parcelas a partir de 10/01/2026: a 10ª vence em 10/10/2026.
+    const purchase = { first_due_date: ts(2026, 1, 10), installment_count: 10 };
+    expect(isInstallmentCompleted(purchase, new Date(2026, 9, 10))).toBe(false);
   });
 
-  it('é verdadeiro quando a parcela atual passou do total', () => {
-    expect(
-      isInstallmentCompleted({ current_installment: 11, installment_count: 10 })
-    ).toBe(true);
+  it('é verdadeiro depois que a última parcela venceu', () => {
+    const purchase = { first_due_date: ts(2026, 1, 10), installment_count: 10 };
+    expect(isInstallmentCompleted(purchase, new Date(2026, 10, 10))).toBe(true);
+  });
+});
+
+describe('firstDueDateFor', () => {
+  it('devolve a própria data quando a cobrança é a 1ª parcela', () => {
+    expect(firstDueDateFor(ts(2026, 3, 5), 1)).toBe(ts(2026, 3, 5));
+  });
+
+  it('recua um mês por parcela já cobrada', () => {
+    expect(firstDueDateFor(ts(2026, 3, 5), 3)).toBe(ts(2026, 1, 5));
+  });
+
+  it('atravessa a virada de ano', () => {
+    expect(firstDueDateFor(ts(2026, 2, 20), 4)).toBe(ts(2025, 11, 20));
+  });
+
+  it('trata número de parcela inválido como a primeira', () => {
+    expect(firstDueDateFor(ts(2026, 3, 5), 0)).toBe(ts(2026, 3, 5));
   });
 });

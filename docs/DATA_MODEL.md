@@ -32,13 +32,17 @@ Toda movimentação **avulsa** (não-parcelada). `amount_cents` guarda o valor a
 
 Compras parceladas são **entidade própria, não N linhas em `transactions`**. Motivos:
 
-- A projeção de "quanto falta pagar" exige `total`, `installment_count` e `current_installment` juntos — reconstruir isso a partir de N transações espalhadas é frágil.
+- A projeção de "quanto falta pagar" exige o total, a quantidade de parcelas e a posição atual juntos — reconstruir isso a partir de N transações espalhadas é frágil.
 - A parcela mensal é derivada (`total / count`) e nunca armazenada, eliminando a possibilidade de os dois valores divergirem.
 - Excluir/editar a compra é uma operação atômica em uma linha.
 
-`current_installment` é 1-indexed (parcela em que a compra está, não quantas foram pagas).
+**A posição no cronograma também é derivada, não armazenada.** `first_due_date` ancora a compra, e a parcela atual é função dela mais a data de hoje (`currentInstallmentFor` em [src/utils/money.ts](../src/utils/money.ts)); "quitada" é o caso em que essa conta passa de `installment_count` (`isInstallmentCompleted`).
 
-Não existe coluna `status`/`completed`: uma compra está concluída quando `current_installment > installment_count` — condição derivada (`isInstallmentCompleted` em [src/utils/money.ts](../src/utils/money.ts)), nunca armazenada. Guardar um status seria duplicar informação que já existe nos dois contadores, com risco de os dois divergirem — o mesmo raciocínio que já vale pra parcela mensal ser derivada e não armazenada.
+Até a v5 existia uma coluna `current_installment`, e ela ensinou por que contador armazenado é ruim aqui: **nada no app o avançava**. O valor congelava no que foi digitado no cadastro e a projeção de "quanto falta pagar" envelhecia em silêncio — o pior tipo de erro, porque a tela continua plausível. Junto disso, o `CHECK` da v2 (`BETWEEN 1 AND installment_count`) tornava impossível gravar o estado que a UI usava para "concluída" (`current_installment > installment_count`), então a seção "Concluídas" da aba Parcelas era inalcançável por construção. A v6 removeu a coluna.
+
+O mesmo raciocínio já valia para não existir coluna `status`/`completed`: informação que outra coluna determina não vira campo, porque dois campos que descrevem a mesma coisa acabam divergindo.
+
+Consequência prática na importação de extrato: quando o extrato diz "parcela 3/10 em 05/03", o app não corrige um contador — ele **reancora `first_due_date`** (`firstDueDateFor`), e a posição volta a se manter sozinha.
 
 ### `goals`
 
@@ -71,5 +75,6 @@ Runner próprio em [src/db/index.ts](../src/db/index.ts) usando `PRAGMA user_ver
 | 3 | `add-chat` | Tabelas `chat_conversations` e `chat_messages` para a aba Chat com IA |
 | 4 | `add-budgets` | Tabela `budgets` para orçamento mensal por tag |
 | 5 | `add-recurring` | Tabela `recurring_transactions` para assinaturas mensais |
+| 6 | `derive-current-installment` | Remove `current_installment` de `installment_purchases` — a posição passa a ser derivada de `first_due_date` |
 
 **Por que a v2 trava isso no banco além da UI:** validação de formulário evita erro do usuário, mas não evita um bug de código (ex: um cálculo que gere `amount_cents` negativo por engano) gravando dado inconsistente silenciosamente — defesa em profundidade. SQLite não suporta `ALTER TABLE ... ADD CONSTRAINT` nem adicionar `CHECK` a uma coluna existente; a v2 usa o procedimento padrão do SQLite para isso (criar tabela nova com o `CHECK`, copiar os dados, apagar a antiga, renomear) — é o padrão a seguir em qualquer migration futura que precise adicionar `CHECK` a uma tabela já existente.

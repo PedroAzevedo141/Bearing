@@ -2,8 +2,9 @@
  * queries/installments.ts
  *
  * Operações sobre a tabela `installment_purchases` (compras parceladas).
- * A parcela mensal é derivada (total / quantidade) e nunca armazenada,
- * evitando inconsistência entre os dois valores.
+ * Tanto o valor da parcela (total / quantidade) quanto a posição atual
+ * (`first_due_date` + hoje) são derivados e nunca armazenados, evitando que
+ * dois campos que descrevem a mesma coisa divirjam.
  *
  * Relacionado: docs/DATA_MODEL.md, src/services/notificationService.ts
  */
@@ -18,17 +19,18 @@ export interface NewInstallmentPurchase {
   tag_id: string | null;
   total_amount_cents: number;
   installment_count: number;
-  /** Parcela em que a compra já está (1 para compra nova). */
-  current_installment: number;
-  /** Unix timestamp (segundos) do vencimento da 1ª parcela. */
+  /**
+   * Unix timestamp (segundos) do vencimento da 1ª parcela. É esta data que
+   * ancora todo o cronograma: a parcela atual é derivada dela, não armazenada.
+   */
   first_due_date: number;
 }
 
 /**
  * Lista todas as compras parceladas, mais recentes primeiro.
  *
- * @returns Todas as compras, inclusive as já quitadas
- *   (current_installment > installment_count fica a cargo da UI filtrar).
+ * @returns Todas as compras, inclusive as já quitadas — filtrar quitadas é
+ *   responsabilidade da UI, via `isInstallmentCompleted`.
  */
 export async function listInstallmentPurchases(): Promise<InstallmentPurchase[]> {
   const db = await getDb();
@@ -42,14 +44,13 @@ export async function listInstallmentPurchases(): Promise<InstallmentPurchase[]>
  *
  * @param data - Campos da compra.
  * @returns A compra persistida.
- * @throws Se `installment_count < 1` ou `current_installment < 1` —
- *   validação defensiva porque esses valores dirigem divisões e loops
- *   de agendamento de notificação.
+ * @throws Se `installment_count < 1` — validação defensiva porque esse valor
+ *   dirige divisões e loops de agendamento de notificação.
  */
 export async function createInstallmentPurchase(
   data: NewInstallmentPurchase
 ): Promise<InstallmentPurchase> {
-  if (data.installment_count < 1 || data.current_installment < 1) {
+  if (data.installment_count < 1) {
     throw new Error('Parcelas devem ser >= 1');
   }
   const db = await getDb();
@@ -59,20 +60,18 @@ export async function createInstallmentPurchase(
     tag_id: data.tag_id,
     total_amount_cents: data.total_amount_cents,
     installment_count: data.installment_count,
-    current_installment: data.current_installment,
     first_due_date: data.first_due_date,
     created_at: Math.floor(Date.now() / 1000),
   };
   await db.runAsync(
     `INSERT INTO installment_purchases
-       (id, name, tag_id, total_amount_cents, installment_count, current_installment, first_due_date, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, name, tag_id, total_amount_cents, installment_count, first_due_date, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
     purchase.id,
     purchase.name,
     purchase.tag_id,
     purchase.total_amount_cents,
     purchase.installment_count,
-    purchase.current_installment,
     purchase.first_due_date,
     purchase.created_at
   );
@@ -84,44 +83,27 @@ export async function createInstallmentPurchase(
  *
  * @param id - ID da compra.
  * @param data - Novos valores dos campos (mesmo shape de `createInstallmentPurchase`).
- * @throws Se `installment_count < 1` ou `current_installment < 1` — mesma
- *   validação defensiva de `createInstallmentPurchase`.
+ * @throws Se `installment_count < 1` — mesma validação defensiva de
+ *   `createInstallmentPurchase`.
  */
 export async function updateInstallmentPurchase(
   id: string,
   data: NewInstallmentPurchase
 ): Promise<void> {
-  if (data.installment_count < 1 || data.current_installment < 1) {
+  if (data.installment_count < 1) {
     throw new Error('Parcelas devem ser >= 1');
   }
   const db = await getDb();
   await db.runAsync(
     `UPDATE installment_purchases
      SET name = ?, tag_id = ?, total_amount_cents = ?, installment_count = ?,
-         current_installment = ?, first_due_date = ?
+         first_due_date = ?
      WHERE id = ?`,
     data.name,
     data.tag_id,
     data.total_amount_cents,
     data.installment_count,
-    data.current_installment,
     data.first_due_date,
-    id
-  );
-}
-
-/**
- * Avança a compra para a próxima parcela (ex: quando a fatura fecha).
- * Não passa de `installment_count` — compra quitada fica estável.
- *
- * @param id - ID da compra.
- */
-export async function advanceInstallment(id: string): Promise<void> {
-  const db = await getDb();
-  await db.runAsync(
-    `UPDATE installment_purchases
-     SET current_installment = MIN(current_installment + 1, installment_count)
-     WHERE id = ?`,
     id
   );
 }

@@ -6,6 +6,7 @@
  * exibição. Ver docs/DATA_MODEL.md para o porquê dessa regra.
  */
 import type { InstallmentPurchase, Transaction } from '../types';
+import { addMonths, monthsBetween } from './date';
 
 /**
  * Calcula o saldo líquido (entradas - saídas) de um período.
@@ -103,22 +104,71 @@ export function installmentAmountCents(totalCents: number, installmentCount: num
   return Math.round(totalCents / Math.max(installmentCount, 1));
 }
 
+/** Campos de uma compra parcelada que determinam em que parcela ela está. */
+type InstallmentSchedule = Pick<InstallmentPurchase, 'first_due_date' | 'installment_count'>;
+
+/**
+ * Em que parcela a compra está hoje, derivado do vencimento da primeira.
+ *
+ * A posição **não** é armazenada: ela é função da data da 1ª parcela e do dia
+ * de hoje (ver docs/DATA_MODEL.md, seção `installment_purchases`). Guardar um
+ * contador significaria depender de alguém lembrar de incrementá-lo — e um
+ * contador que ninguém avança envelhece em silêncio, mentindo sobre quanto
+ * ainda falta pagar.
+ *
+ * @param purchase - Compra parcelada (só os dois campos usados no cálculo).
+ * @param now - Momento de referência; default é agora. Existe para testes.
+ * @returns Parcela atual, 1-indexed. Vale 1 enquanto a primeira não venceu e
+ *   `installment_count + 1` quando a compra já foi quitada.
+ *
+ * @example
+ * // 1ª parcela em 10/01, hoje é 15/03 → 3ª parcela
+ * currentInstallmentFor({ first_due_date: ..., installment_count: 10 });
+ */
+export function currentInstallmentFor(purchase: InstallmentSchedule, now: Date = new Date()): number {
+  const elapsed = monthsBetween(new Date(purchase.first_due_date * 1000), now);
+  const current = elapsed + 1;
+  if (current < 1) {
+    return 1;
+  }
+  return Math.min(current, purchase.installment_count + 1);
+}
+
 /**
  * Diz se uma compra parcelada já foi quitada.
  *
- * Sempre derivado de `current_installment`/`installment_count` — não existe
- * coluna `status` no banco (ver docs/DATA_MODEL.md, seção
- * `installment_purchases`): guardar um status seria duplicar informação que
- * já existe nos dois contadores, com risco de os dois divergirem.
- *
  * @param purchase - Compra parcelada (só os dois campos usados no cálculo).
- * @returns true se a parcela atual passou do total de parcelas.
+ * @param now - Momento de referência; default é agora. Existe para testes.
+ * @returns true quando a última parcela já venceu.
  *
  * @example
- * isInstallmentCompleted({ current_installment: 11, installment_count: 10 }); // true
+ * // 10 parcelas, 1ª em 10/01/2025, hoje em 2026 → true
+ * isInstallmentCompleted(purchase);
  */
 export function isInstallmentCompleted(
-  purchase: Pick<InstallmentPurchase, 'current_installment' | 'installment_count'>
+  purchase: InstallmentSchedule,
+  now: Date = new Date()
 ): boolean {
-  return purchase.current_installment > purchase.installment_count;
+  return currentInstallmentFor(purchase, now) > purchase.installment_count;
+}
+
+/**
+ * Reconstrói o vencimento da 1ª parcela a partir de uma cobrança conhecida.
+ *
+ * Serve à importação de extrato: o extrato diz "parcela 3/10 em 05/03", e daí
+ * sai a âncora da compra inteira (1ª parcela em 05/01). É o que substitui o
+ * antigo "avançar o contador" — em vez de corrigir a posição, corrige-se o
+ * calendário, e a posição passa a se manter sozinha.
+ *
+ * @param chargedAt - Unix timestamp (segundos) da cobrança observada.
+ * @param installmentNumber - Número da parcela cobrada, 1-indexed.
+ * @returns Unix timestamp (segundos) do vencimento da 1ª parcela.
+ *
+ * @example
+ * // parcela 3 cobrada em 05/03 → 1ª parcela em 05/01
+ * firstDueDateFor(marco05, 3);
+ */
+export function firstDueDateFor(chargedAt: number, installmentNumber: number): number {
+  const anchor = addMonths(new Date(chargedAt * 1000), -(Math.max(installmentNumber, 1) - 1));
+  return Math.floor(anchor.getTime() / 1000);
 }

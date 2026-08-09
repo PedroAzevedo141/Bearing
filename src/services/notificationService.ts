@@ -19,6 +19,7 @@ import Constants, { ExecutionEnvironment } from 'expo-constants';
 import type * as ExpoNotifications from 'expo-notifications';
 
 import type { InstallmentPurchase, RecurringTransaction } from '../types';
+import { addMonths } from '../utils/date';
 import { formatCents, installmentAmountCents } from '../utils/money';
 
 declare const require: (id: string) => unknown;
@@ -95,9 +96,10 @@ export async function scheduleInstallmentReminders(
   const firstDue = new Date(purchase.first_due_date * 1000);
   const ids: string[] = [];
 
-  for (let n = purchase.current_installment; n <= purchase.installment_count; n += 1) {
-    const due = new Date(firstDue);
-    due.setMonth(due.getMonth() + (n - 1));
+  // Percorre o cronograma inteiro: parcelas já vencidas são descartadas logo
+  // abaixo pela própria data, sem precisar de um contador de posição.
+  for (let n = 1; n <= purchase.installment_count; n += 1) {
+    const due = addMonths(firstDue, n - 1);
     due.setHours(REMINDER_HOUR, 0, 0, 0);
     if (due.getTime() <= Date.now()) {
       continue;

@@ -12,6 +12,7 @@ import { Button, TextInput } from 'react-native-paper';
 
 import type { InstallmentInput } from '../../hooks/useInstallments';
 import type { InstallmentPurchase } from '../../types';
+import { formatDateInput, parseDateInput } from '../../utils/date';
 import { parseCents } from '../../utils/money';
 
 interface InstallmentFormProps {
@@ -41,38 +42,40 @@ export function InstallmentForm({
   const [count, setCount] = useState(
     initialPurchase ? String(initialPurchase.installment_count) : ''
   );
-  const [current, setCurrent] = useState(
-    initialPurchase ? String(initialPurchase.current_installment) : '1'
+  // A data da 1ª parcela é o que define em que parcela a compra está hoje
+  // (ver currentInstallmentFor). Por isso é campo editável: para uma compra
+  // que começou meses atrás, deixar "hoje" faria o app mostrar parcela 1.
+  const [firstDue, setFirstDue] = useState(
+    formatDateInput(
+      initialPurchase ? new Date(initialPurchase.first_due_date * 1000) : new Date()
+    )
   );
   const [tagName, setTagName] = useState(initialTagName ?? '');
 
   async function handleSubmit() {
     const totalCents = parseCents(total);
     const installmentCount = Number.parseInt(count, 10);
-    const currentInstallment = Number.parseInt(current, 10) || 1;
     if (!name.trim() || totalCents === null || totalCents <= 0 || !(installmentCount >= 1)) {
       Alert.alert('Dados incompletos', 'Preencha nome, valor total e número de parcelas.');
       return;
     }
-    if (currentInstallment < 1 || currentInstallment > installmentCount) {
-      Alert.alert('Parcela inválida', 'A parcela atual precisa estar entre 1 e o total de parcelas.');
+    const firstDueDate = parseDateInput(firstDue);
+    if (!firstDueDate) {
+      Alert.alert('Data inválida', 'Informe o vencimento da 1ª parcela no formato DD/MM/AAAA.');
       return;
     }
     await onSubmit({
       name: name.trim(),
       totalCents,
       installmentCount,
-      currentInstallment,
-      firstDueDate: initialPurchase
-        ? new Date(initialPurchase.first_due_date * 1000)
-        : new Date(),
+      firstDueDate,
       tagName: tagName.trim() || null,
     });
     if (mode === 'create') {
       setName('');
       setTotal('');
       setCount('');
-      setCurrent('1');
+      setFirstDue(formatDateInput(new Date()));
       setTagName('');
     }
   }
@@ -103,10 +106,11 @@ export function InstallmentForm({
         />
         <TextInput
           mode="outlined"
-          label="Parcela atual"
-          keyboardType="number-pad"
-          value={current}
-          onChangeText={setCurrent}
+          label="1ª parcela"
+          placeholder="DD/MM/AAAA"
+          keyboardType="numbers-and-punctuation"
+          value={firstDue}
+          onChangeText={setFirstDue}
           style={{ flex: 1 }}
         />
       </View>

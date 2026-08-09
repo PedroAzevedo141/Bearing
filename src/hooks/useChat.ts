@@ -25,7 +25,12 @@ import {
 } from '../db/queries/chat';
 import { getBalanceByTag, getBalanceByTagForMonth } from '../db/queries/transactions';
 import { AiServiceError, fetchChat } from '../services/aiService';
-import { formatCents, installmentAmountCents, isInstallmentCompleted } from '../utils/money';
+import {
+  currentInstallmentFor,
+  formatCents,
+  installmentAmountCents,
+  isInstallmentCompleted,
+} from '../utils/money';
 import type { ChatApiMessage, ChatContentBlock, ChatConversation, ChatMessage } from '../types';
 
 /** Quantas mensagens da conversa entram no payload da API (as antigas ficam salvas). */
@@ -71,13 +76,14 @@ async function executeTool(name: string, input: unknown): Promise<unknown> {
     const active = (await listInstallmentPurchases()).filter((p) => !isInstallmentCompleted(p));
     return active.map((p) => {
       const parcela = installmentAmountCents(p.total_amount_cents, p.installment_count);
-      const pagas = Math.min(p.current_installment - 1, p.installment_count);
+      const atual = currentInstallmentFor(p);
+      const pagas = Math.min(atual - 1, p.installment_count);
       const restante = (p.installment_count - pagas) * parcela;
       return {
         nome: p.name,
         valor_de_cada_parcela: formatCents(parcela),
         valor_total_da_compra: formatCents(p.total_amount_cents),
-        parcela_atual: p.current_installment,
+        parcela_atual: atual,
         total_de_parcelas: p.installment_count,
         ainda_falta_pagar: formatCents(restante),
       };

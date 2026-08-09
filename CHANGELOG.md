@@ -30,6 +30,7 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 - Importação de extrato por PDF (até 20 MB), com consentimento explícito, extração temporária no Worker e revisão do texto antes da classificação.
 - Componentes compartilhados de cabeçalho e estado vazio para dar consistência às áreas principais.
 - Aba **Rotação**: linha "Parcelas do mês" — soma derivada das parcelas ativas, sinalizada como compromisso fixo fora do saldo do período (nunca gravada como transação).
+- `src/utils/date.ts`: aritmética de calendário compartilhada (`addMonths` com queda para o último dia do mês, `monthsBetween`, parsing/formatação de `DD/MM/AAAA`), com testes.
 - Importação de extrato: tipo **Assinatura** na Confirmação 2 (seletor Avulsa/Parcela/Assinatura). Marcar "Assinatura" grava a cobrança do mês E cadastra a recorrência para lembretes futuros, deduplicando por nome (dia do vencimento derivado da data da cobrança).
 
 ### Alterado
@@ -39,6 +40,10 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ### Corrigido
 
+- Compra parcelada nunca era marcada como concluída: a seção "Concluídas" da aba Parcelas era inalcançável por construção. A UI define quitada como `current_installment > installment_count`, mas o `CHECK` da migration v2 proibia exatamente esse estado e o `advanceInstallment` travava no total. Junto disso, o contador só mudava se alguém o avançasse — e nada no app fazia isso, então a projeção de "quanto falta pagar" envelhecia em silêncio. **Migration v6** remove `current_installment`: a parcela atual agora é derivada de `first_due_date` + data de hoje (`currentInstallmentFor`), como já acontecia com o valor da parcela. Quem tinha compras cadastradas vai ver a posição corrigida para a que a data indica.
+- Formulário de compra parcelada trocou o campo "Parcela atual" pelo vencimento da 1ª parcela — é essa data que ancora o cronograma; sem ela, uma compra iniciada meses atrás aparecia como parcela 1.
+- Lembretes de parcela pulavam um mês quando o vencimento caía no dia 29, 30 ou 31: `setMonth` transborda para o mês seguinte quando o dia não existe no destino (31/01 + 1 mês virava 03/03). O novo `addMonths` (`src/utils/date.ts`) cai para o último dia do mês.
+- Importação de extrato deixou de "avançar o contador" da compra parcelada e passa a reancorar `first_due_date` a partir da cobrança observada (`firstDueDateFor`), só quando o extrato aponta um começo anterior ao registrado.
 - Chat: hook fazia `fetch` direto e ignorava o mês/ano da tool `getGastosPorTag`; agora passa pelo `aiService`, é tipado (sem `any`) e a tool consulta o mês pedido. Erro de rede vira estado da tela (Snackbar), não mais mensagem falsa gravada no histórico.
 - Chat dava respostas financeiras erradas (confundia valor da parcela com o total da compra): as tools devolviam números crus em centavos. Agora devolvem valores já derivados, rotulados sem ambiguidade (`valor_de_cada_parcela` vs `valor_total_da_compra`, `ainda_falta_pagar`) e formatados em reais, e o system prompt proíbe recalcular — ver `docs/AI_PROMPTS.md`.
 - Orçamento e Assinaturas travavam o app no Expo Go — os hooks `useBudgets`/`useRecurring` importavam `expo-notifications` direto. Agora as notificações passam pelo `notificationService` (carregamento condicional), como o resto do app.

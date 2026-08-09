@@ -167,3 +167,35 @@ CREATE TABLE IF NOT EXISTS recurring_transactions (
   created_at INTEGER NOT NULL
 );
 `;
+
+/**
+ * SQL da migration v6: remove `current_installment` de `installment_purchases`.
+ *
+ * A parcela atual passou a ser derivada de `first_due_date` + data de hoje
+ * (`currentInstallmentFor` em src/utils/money.ts). A coluna era um contador que
+ * nada no app avançava automaticamente: congelava no valor digitado no cadastro
+ * e envelhecia em silêncio. Pior, o `CHECK` da v2 (`BETWEEN 1 AND
+ * installment_count`) tornava impossível representar "quitada", que a UI define
+ * como `current_installment > installment_count` — a seção "Concluídas" da aba
+ * Parcelas era inalcançável por construção.
+ *
+ * Mesmo procedimento de rebuild da v2, pelo mesmo motivo (o `CHECK` composto
+ * cita a coluna removida e precisa sair junto). Nenhuma tabela referencia
+ * `installment_purchases` por chave estrangeira, então o rebuild é seguro.
+ */
+export const SCHEMA_V6_DERIVED_INSTALLMENT = `
+CREATE TABLE installment_purchases_new (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  tag_id TEXT REFERENCES tags(id),
+  total_amount_cents INTEGER NOT NULL CHECK (total_amount_cents > 0),
+  installment_count INTEGER NOT NULL CHECK (installment_count >= 1),
+  first_due_date INTEGER NOT NULL,
+  created_at INTEGER NOT NULL
+);
+INSERT INTO installment_purchases_new
+  SELECT id, name, tag_id, total_amount_cents, installment_count, first_due_date, created_at
+  FROM installment_purchases;
+DROP TABLE installment_purchases;
+ALTER TABLE installment_purchases_new RENAME TO installment_purchases;
+`;

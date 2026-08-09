@@ -26,7 +26,7 @@ export interface InstallmentInput {
   name: string;
   totalCents: number;
   installmentCount: number;
-  currentInstallment: number;
+  /** Vencimento da 1ª parcela — âncora de todo o cronograma da compra. */
   firstDueDate: Date;
   tagName: string | null;
 }
@@ -74,7 +74,6 @@ export function useInstallments(): UseInstallmentsResult {
         tag_id: tag?.id ?? null,
         total_amount_cents: input.totalCents,
         installment_count: input.installmentCount,
-        current_installment: input.currentInstallment,
         first_due_date: Math.floor(input.firstDueDate.getTime() / 1000),
       };
     },

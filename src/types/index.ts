@@ -59,6 +59,9 @@ export interface Transaction {
 /**
  * Compra parcelada — entidade própria, não N linhas em `transactions`,
  * porque a projeção de "quanto falta pagar" exige o total e a posição atual.
+ *
+ * A parcela atual **não** é um campo: deriva de `first_due_date` + hoje, via
+ * `currentInstallmentFor` (src/utils/money.ts). Ver docs/DATA_MODEL.md.
  */
 export interface InstallmentPurchase {
   id: string;
@@ -69,8 +72,6 @@ export interface InstallmentPurchase {
   total_amount_cents: number;
   /** Total de parcelas. */
   installment_count: number;
-  /** Parcela atual, 1-indexed. */
-  current_installment: number;
   /** Unix timestamp (segundos) do vencimento da 1ª parcela. */
   first_due_date: number;
   created_at: number;

@@ -16,6 +16,7 @@ import { useInstallments } from '../../src/hooks/useInstallments';
 import { colors } from '../../src/theme/colors';
 import type { InstallmentPurchase, Tag } from '../../src/types';
 import {
+  currentInstallmentFor,
   formatCents,
   installmentAmountCents,
   isInstallmentCompleted,
@@ -43,7 +44,7 @@ export default function ParcelasScreen() {
   const remainingTotal = useMemo(
     () =>
       activePurchases.reduce((sum, purchase) => {
-        const paid = Math.min(purchase.current_installment - 1, purchase.installment_count);
+        const paid = Math.min(currentInstallmentFor(purchase) - 1, purchase.installment_count);
         return (
           sum +
           (purchase.installment_count - paid) *
@@ -86,7 +87,7 @@ export default function ParcelasScreen() {
         <InstallmentCard
           name={item.name}
           tagName={item.tag_id ? (tagNameById.get(item.tag_id) ?? null) : null}
-          currentInstallment={item.current_installment}
+          currentInstallment={currentInstallmentFor(item)}
           installmentCount={item.installment_count}
           installmentAmountCents={installmentAmountCents(
             item.total_amount_cents,
