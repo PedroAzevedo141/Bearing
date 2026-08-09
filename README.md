@@ -75,8 +75,16 @@ Supõe o Android Studio já instalado, com pelo menos um dispositivo virtual (AV
    npx expo run:android
    ```
 
+   Não passe `--device`: esse parâmetro espera o nome do AVD, não o serial do
+   adb, então `--device emulator-5554` falha com `Could not find device with
+   name`. Sem o parâmetro, o comando usa o emulador que já está aberto.
+
    O comando compila, instala e abre um novo aplicativo de desenvolvimento no
-   emulador. Nas execuções seguintes, enquanto as dependências nativas não
+   emulador. Na primeira vez em uma máquina, o Gradle ainda baixa o NDK
+   (~1 GB) e o Build-Tools da versão exigida pelo projeto, e compila do zero
+   todos os módulos nativos — reserve algo entre 15 e 30 minutos. Esse custo
+   não se repete: com o cache do Gradle quente, o build cai para poucos
+   minutos. Nas execuções seguintes, enquanto as dependências nativas não
    mudarem:
 
    ```bash
