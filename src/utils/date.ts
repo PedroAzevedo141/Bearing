@@ -76,6 +76,69 @@ export function monthsBetween(from: Date, to: Date): number {
 }
 
 /**
+ * Uma competência mensal — o recorte por que o usuário raciocina ao olhar
+ * finanças ("como foi março?"), diferente de uma janela móvel de N dias.
+ */
+export interface MonthRef {
+  /** Mês 1-12 (não 0-11 como no `Date`, para casar com o que as queries pedem). */
+  month: number;
+  /** Ano com 4 dígitos. */
+  year: number;
+}
+
+/**
+ * A competência do mês corrente.
+ *
+ * @param now - Momento de referência; default é agora. Existe para testes.
+ * @returns Mês e ano atuais.
+ */
+export function currentMonthRef(now: Date = new Date()): MonthRef {
+  return { month: now.getMonth() + 1, year: now.getFullYear() };
+}
+
+/**
+ * Anda meses para frente ou para trás numa competência.
+ *
+ * @param ref - Competência de origem.
+ * @param delta - Meses a somar; negativo volta.
+ * @returns Nova competência, com a virada de ano já resolvida.
+ *
+ * @example
+ * shiftMonth({ month: 1, year: 2026 }, -1); // { month: 12, year: 2025 }
+ */
+export function shiftMonth(ref: MonthRef, delta: number): MonthRef {
+  const date = new Date(ref.year, ref.month - 1 + delta, 1);
+  return { month: date.getMonth() + 1, year: date.getFullYear() };
+}
+
+/**
+ * Diz se duas competências são a mesma.
+ *
+ * @param a - Primeira competência.
+ * @param b - Segunda competência.
+ * @returns true se mês e ano coincidem.
+ */
+export function isSameMonth(a: MonthRef, b: MonthRef): boolean {
+  return a.month === b.month && a.year === b.year;
+}
+
+/**
+ * Rótulo da competência para exibição.
+ *
+ * Omite o ano quando é o ano corrente — "março" é mais leve de ler que
+ * "março de 2026" e não perde informação no caso mais comum.
+ *
+ * @param ref - Competência a rotular.
+ * @param now - Momento de referência; default é agora. Existe para testes.
+ * @returns Ex: "março" ou "março de 2025".
+ */
+export function formatMonthLabel(ref: MonthRef, now: Date = new Date()): string {
+  const date = new Date(ref.year, ref.month - 1, 1);
+  const month = date.toLocaleDateString('pt-BR', { month: 'long' });
+  return ref.year === now.getFullYear() ? month : `${month} de ${ref.year}`;
+}
+
+/**
  * Converte a digitação do usuário no formato brasileiro em `Date`.
  *
  * Rejeita datas que não existem no calendário (ex: 31/02/2026) — o `Date` do

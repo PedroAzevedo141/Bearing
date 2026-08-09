@@ -40,6 +40,32 @@ export async function listTransactions(periodDays: number): Promise<Transaction[
 }
 
 /**
+ * Lista as transações de um mês/ano, mais recentes primeiro.
+ *
+ * Diferente de `listTransactions`, que usa janela móvel: aqui o recorte é a
+ * competência fechada, que é como o usuário raciocina ao perguntar "como foi
+ * março?". Mesmo intervalo `[1º do mês, 1º do mês seguinte)` usado por
+ * `getBalanceByTagForMonth`, para as duas leituras nunca discordarem.
+ *
+ * @param month - Mês 1-12.
+ * @param year - Ano com 4 dígitos (ex: 2026).
+ * @returns Transações da competência.
+ */
+export async function listTransactionsForMonth(
+  month: number,
+  year: number
+): Promise<Transaction[]> {
+  const db = await getDb();
+  const start = Math.floor(new Date(year, month - 1, 1).getTime() / 1000);
+  const end = Math.floor(new Date(year, month, 1).getTime() / 1000);
+  return db.getAllAsync<Transaction>(
+    'SELECT * FROM transactions WHERE occurred_at >= ? AND occurred_at < ? ORDER BY occurred_at DESC',
+    start,
+    end
+  );
+}
+
+/**
  * Registra uma nova transação.
  *
  * @param data - Campos da transação; `occurred_at` default é o momento atual.

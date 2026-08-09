@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
-import { addMonths, formatDateInput, monthsBetween, parseDateInput, startOfDay } from './date';
+import {
+  addMonths,
+  currentMonthRef,
+  formatDateInput,
+  formatMonthLabel,
+  isSameMonth,
+  monthsBetween,
+  parseDateInput,
+  shiftMonth,
+  startOfDay,
+} from './date';
 
 describe('addMonths', () => {
   it('preserva o dia quando ele existe no mês de destino', () => {
@@ -85,6 +95,47 @@ describe('parseDateInput', () => {
     expect(parseDateInput('amanhã')).toBeNull();
     expect(parseDateInput('')).toBeNull();
     expect(parseDateInput('2026-03-05')).toBeNull();
+  });
+});
+
+describe('currentMonthRef', () => {
+  it('usa mês 1-12, não 0-11', () => {
+    expect(currentMonthRef(new Date(2026, 0, 15))).toEqual({ month: 1, year: 2026 });
+  });
+});
+
+describe('shiftMonth', () => {
+  it('avança dentro do mesmo ano', () => {
+    expect(shiftMonth({ month: 3, year: 2026 }, 2)).toEqual({ month: 5, year: 2026 });
+  });
+
+  it('volta atravessando a virada de ano', () => {
+    expect(shiftMonth({ month: 1, year: 2026 }, -1)).toEqual({ month: 12, year: 2025 });
+  });
+
+  it('avança atravessando a virada de ano', () => {
+    expect(shiftMonth({ month: 12, year: 2025 }, 1)).toEqual({ month: 1, year: 2026 });
+  });
+
+  it('anda mais de doze meses', () => {
+    expect(shiftMonth({ month: 6, year: 2026 }, -18)).toEqual({ month: 12, year: 2024 });
+  });
+});
+
+describe('isSameMonth', () => {
+  it('exige mês e ano iguais', () => {
+    expect(isSameMonth({ month: 3, year: 2026 }, { month: 3, year: 2026 })).toBe(true);
+    expect(isSameMonth({ month: 3, year: 2026 }, { month: 3, year: 2025 })).toBe(false);
+  });
+});
+
+describe('formatMonthLabel', () => {
+  it('omite o ano quando é o ano corrente', () => {
+    expect(formatMonthLabel({ month: 3, year: 2026 }, new Date(2026, 7, 9))).toBe('março');
+  });
+
+  it('mostra o ano quando é outro ano', () => {
+    expect(formatMonthLabel({ month: 3, year: 2025 }, new Date(2026, 7, 9))).toBe('março de 2025');
   });
 });
 

@@ -5,12 +5,15 @@ import { getRecurringById, RecurringWithTag } from '../../../src/db/queries/recu
 import { TransactionForm } from '../../../src/components/forms/TransactionForm';
 import { useTransactions } from '../../../src/hooks/useTransactions';
 import { colors } from '../../../src/theme/colors';
+import { currentMonthRef } from '../../../src/utils/date';
 
 export default function ConfirmRecurringScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [recurring, setRecurring] = useState<RecurringWithTag | null>(null);
   const [loading, setLoading] = useState(true);
-  const { addTransaction } = useTransactions(30);
+  // A competência não importa aqui — esta tela só usa `addTransaction`, e a
+  // cobrança nasce com a data de hoje.
+  const { addTransaction } = useTransactions(currentMonthRef());
 
   useEffect(() => {
     async function load() {

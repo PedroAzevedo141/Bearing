@@ -28,9 +28,53 @@ import { useInstallments } from '../../src/hooks/useInstallments';
 import { useTransactions } from '../../src/hooks/useTransactions';
 import { colors } from '../../src/theme/colors';
 import type { Tag, Transaction } from '../../src/types';
+import {
+  currentMonthRef,
+  formatMonthLabel,
+  isSameMonth,
+  shiftMonth,
+  type MonthRef,
+} from '../../src/utils/date';
 import { formatCents, installmentAmountCents, isInstallmentCompleted } from '../../src/utils/money';
 
-const PERIOD_DAYS = 30;
+interface MonthSwitcherProps {
+  month: MonthRef;
+  onChange: (month: MonthRef) => void;
+  /** Bloqueia o avanço além do mês corrente — não há dado no futuro. */
+  atCurrentMonth: boolean;
+}
+
+/** Navegação ‹ mês › do cabeçalho da Rotação. */
+function MonthSwitcher({ month, onChange, atCurrentMonth }: MonthSwitcherProps) {
+  return (
+    <View className="flex-row items-center gap-1 rounded-2xl border border-border bg-surface px-1 py-1">
+      <TouchableOpacity
+        className="h-9 w-9 items-center justify-center rounded-xl"
+        onPress={() => onChange(shiftMonth(month, -1))}
+        accessibilityRole="button"
+        accessibilityLabel="Mês anterior"
+      >
+        <MaterialCommunityIcons name="chevron-left" size={22} color={colors.ink} />
+      </TouchableOpacity>
+      <Text className="min-w-[76px] text-center text-sm font-bold capitalize text-ink">
+        {formatMonthLabel(month)}
+      </Text>
+      <TouchableOpacity
+        className="h-9 w-9 items-center justify-center rounded-xl"
+        onPress={() => onChange(shiftMonth(month, 1))}
+        disabled={atCurrentMonth}
+        accessibilityRole="button"
+        accessibilityLabel="Próximo mês"
+      >
+        <MaterialCommunityIcons
+          name="chevron-right"
+          size={22}
+          color={atCurrentMonth ? colors.muted : colors.ink}
+        />
+      </TouchableOpacity>
+    </View>
+  );
+}
 
 interface QuickActionProps {
   icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -67,8 +111,16 @@ function QuickAction({ icon, label, hint, onPress }: QuickActionProps) {
 }
 
 export default function RotacaoScreen() {
-  const { transactions, netFlowCents, addTransaction, editTransaction, removeTransaction } =
-    useTransactions(PERIOD_DAYS);
+  const [month, setMonth] = useState<MonthRef>(() => currentMonthRef());
+  const atCurrentMonth = isSameMonth(month, currentMonthRef());
+  const {
+    transactions,
+    netFlowCents,
+    previousNetFlowCents,
+    addTransaction,
+    editTransaction,
+    removeTransaction,
+  } = useTransactions(month);
   const { budgets } = useBudgets();
   const { purchases } = useInstallments();
   const [tags, setTags] = useState<Tag[]>([]);
@@ -91,6 +143,24 @@ export default function RotacaoScreen() {
   useEffect(() => {
     listTags().then(setTags);
   }, [transactions]);
+
+  // Comparação com o mês anterior. Fica null quando ainda não carregou ou
+  // quando o mês anterior não teve movimento — variação sobre zero não tem
+  // leitura honesta ("+∞%" não ajuda ninguém).
+  const monthComparison = useMemo(() => {
+    if (previousNetFlowCents === null || previousNetFlowCents === 0) {
+      return null;
+    }
+    const diff = netFlowCents - previousNetFlowCents;
+    if (diff === 0) {
+      return { improved: true, label: 'Igual ao mês anterior' };
+    }
+    const percent = Math.round((diff / Math.abs(previousNetFlowCents)) * 100);
+    return {
+      improved: diff > 0,
+      label: `${diff > 0 ? '+' : ''}${percent}% vs. mês anterior`,
+    };
+  }, [netFlowCents, previousNetFlowCents]);
 
   const tagNameById = useMemo(() => new Map(tags.map((tag) => [tag.id, tag.name])), [tags]);
   const totals = useMemo(
@@ -123,17 +193,30 @@ export default function RotacaoScreen() {
       <ScreenHeader
         eyebrow="Seu dinheiro"
         title="Visão geral"
-        description={`Acompanhe o ritmo dos últimos ${PERIOD_DAYS} dias.`}
+        description="Acompanhe o ritmo mês a mês."
         icon="chart-areaspline"
+        trailing={
+          <MonthSwitcher month={month} onChange={setMonth} atCurrentMonth={atCurrentMonth} />
+        }
       />
 
       <View className="mx-5 overflow-hidden rounded-3xl bg-ink p-5">
         <View className="flex-row items-center justify-between">
-          <View>
-            <Text className="text-sm font-medium text-white/60">Saldo do período</Text>
+          <View className="flex-1">
+            <Text className="text-sm font-medium text-white/60">Saldo do mês</Text>
             <Text className="mt-1 text-3xl font-bold tracking-tight text-white">
               {formatCents(netFlowCents)}
             </Text>
+            {monthComparison ? (
+              <View className="mt-1.5 flex-row items-center gap-1">
+                <MaterialCommunityIcons
+                  name={monthComparison.improved ? 'trending-up' : 'trending-down'}
+                  size={15}
+                  color={monthComparison.improved ? colors.positive : colors.negative}
+                />
+                <Text className="text-xs text-white/60">{monthComparison.label}</Text>
+              </View>
+            ) : null}
           </View>
           <View className="h-11 w-11 items-center justify-center rounded-2xl bg-white/10">
             <MaterialCommunityIcons name="wallet-outline" size={23} color="#FFFFFF" />
@@ -322,6 +405,10 @@ export default function RotacaoScreen() {
                 mode="create"
                 onSubmit={async (input) => {
                   await addTransaction(input);
+                  // A transação nasce com a data de hoje, então voltar para o
+                  // mês corrente evita o efeito de "salvei e não apareceu"
+                  // quando o usuário estava olhando um mês passado.
+                  setMonth(currentMonthRef());
                   closeForm();
                 }}
                 onCancel={closeForm}

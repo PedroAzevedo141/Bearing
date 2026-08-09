@@ -12,10 +12,11 @@ import { getOrCreateTag } from '../db/queries/tags';
 import {
   createTransaction,
   deleteTransaction,
-  listTransactions,
+  listTransactionsForMonth,
   updateTransaction,
 } from '../db/queries/transactions';
 import type { Transaction, TransactionType } from '../types';
+import { shiftMonth, type MonthRef } from '../utils/date';
 import { calculateNetFlow } from '../utils/money';
 
 /** Campos editáveis de uma transação, comuns a criar e editar. */
@@ -28,10 +29,16 @@ export interface TransactionInput {
 
 /** Estado e ações expostos pelo hook. */
 export interface UseTransactionsResult {
-  /** Transações do período, mais recentes primeiro. */
+  /** Transações da competência, mais recentes primeiro. */
   transactions: Transaction[];
-  /** Saldo líquido do período em centavos. */
+  /** Saldo líquido da competência em centavos. */
   netFlowCents: number;
+  /**
+   * Saldo líquido do mês anterior em centavos, para comparação. É `null`
+   * enquanto carrega — a UI precisa distinguir "ainda não sei" de "foi zero",
+   * senão mostraria uma variação inventada no primeiro frame.
+   */
+  previousNetFlowCents: number | null;
   /** true enquanto a primeira carga não terminou. */
   loading: boolean;
   /** Registra uma transação; a tag é criada se não existir. */
@@ -49,20 +56,31 @@ export interface UseTransactionsResult {
 }
 
 /**
- * Carrega e mantém as transações de uma janela de dias.
+ * Carrega e mantém as transações de uma competência mensal.
  *
- * @param periodDays - Janela do período (ex: 30 para "último mês").
+ * Carrega também o mês anterior, porque um saldo isolado não diz se o mês foi
+ * bom — só a comparação diz.
+ *
+ * @param month - Competência a exibir (mês 1-12 + ano).
  * @returns Estado reativo + ações de escrita.
  */
-export function useTransactions(periodDays: number): UseTransactionsResult {
+export function useTransactions(month: MonthRef): UseTransactionsResult {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [previousNetFlowCents, setPreviousNetFlowCents] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const { month: monthNumber, year } = month;
+
   const refresh = useCallback(async () => {
-    const rows = await listTransactions(periodDays);
+    const previous = shiftMonth({ month: monthNumber, year }, -1);
+    const [rows, previousRows] = await Promise.all([
+      listTransactionsForMonth(monthNumber, year),
+      listTransactionsForMonth(previous.month, previous.year),
+    ]);
     setTransactions(rows);
+    setPreviousNetFlowCents(calculateNetFlow(previousRows));
     setLoading(false);
-  }, [periodDays]);
+  }, [monthNumber, year]);
 
   useEffect(() => {
     refresh();
@@ -111,6 +129,7 @@ export function useTransactions(periodDays: number): UseTransactionsResult {
   return {
     transactions,
     netFlowCents: calculateNetFlow(transactions),
+    previousNetFlowCents,
     loading,
     addTransaction,
     editTransaction,
