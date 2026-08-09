@@ -26,12 +26,15 @@ import { ActivityIndicator, Button, PaperProvider } from 'react-native-paper';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 
-import { paperTheme } from '../src/theme/paperTheme';
+import { useThemeColors } from '../src/theme/colors';
+import { usePaperTheme } from '../src/theme/paperTheme';
 
 type LockState = 'checking' | 'locked' | 'unlocked';
 
 export default function RootLayout() {
   const [lockState, setLockState] = useState<LockState>('checking');
+  const paperTheme = usePaperTheme();
+  const themeColors = useThemeColors();
 
   const authenticate = useCallback(async () => {
     const hasHardware = await LocalAuthentication.hasHardwareAsync();
@@ -71,9 +74,9 @@ export default function RootLayout() {
         settings={{ icon: (props) => <MaterialCommunityIcons {...props} /> }}
       >
         {lockState !== 'unlocked' ? (
-          <View className="flex-1 items-center justify-center bg-ink p-8">
+          <View className="flex-1 items-center justify-center bg-spotlight p-8">
             <View className="mb-5 h-20 w-20 items-center justify-center rounded-3xl bg-white/10">
-              <MaterialCommunityIcons name="shield-lock-outline" size={38} color="#9EB4FF" />
+              <MaterialCommunityIcons name="shield-lock-outline" size={38} color={themeColors.onSpotlight} />
             </View>
             <Text className="text-4xl font-bold tracking-tight text-white">Bearing</Text>
             <Text className="mt-2 max-w-xs text-center text-base leading-6 text-white/60">
@@ -84,7 +87,7 @@ export default function RootLayout() {
                 mode="contained"
                 icon="fingerprint"
                 buttonColor="#FFFFFF"
-                textColor="#101828"
+                textColor={themeColors.spotlight}
                 onPress={authenticate}
                 style={{ marginTop: 24 }}
               >

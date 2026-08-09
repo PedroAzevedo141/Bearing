@@ -3,10 +3,10 @@
  * via props, pra manter a lógica de dados isolada em src/db/queries.
  */
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors } from '../theme/colors';
+import { useThemeColors, type ThemeColors } from '../theme/colors';
 import type { Transaction } from '../types';
 import { MoneyText } from './MoneyText';
 
@@ -17,6 +17,8 @@ interface TransactionListItemProps {
 }
 
 export function TransactionListItem({ transaction, tagName }: TransactionListItemProps) {
+  const themeColors = useThemeColors();
+  const styles = useMemo(() => createStyles(themeColors), [themeColors]);
   const signedCents =
     transaction.type === 'income' ? transaction.amount_cents : -transaction.amount_cents;
   const date = new Date(transaction.occurred_at * 1000).toLocaleDateString('pt-BR');
@@ -32,7 +34,7 @@ export function TransactionListItem({ transaction, tagName }: TransactionListIte
         <MaterialCommunityIcons
           name={transaction.type === 'income' ? 'arrow-bottom-left' : 'arrow-top-right'}
           size={18}
-          color={transaction.type === 'income' ? colors.positive : colors.negative}
+          color={transaction.type === 'income' ? themeColors.positive : themeColors.negative}
         />
       </View>
       <View style={styles.info}>
@@ -49,7 +51,13 @@ export function TransactionListItem({ transaction, tagName }: TransactionListIte
   );
 }
 
-const styles = StyleSheet.create({
+/**
+ * Estilos dependem do tema, então são uma fábrica em vez de constante de
+ * módulo: `StyleSheet.create` no topo do arquivo congelaria as cores do tema
+ * claro na primeira avaliação.
+ */
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -67,9 +75,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 12,
   },
-  incomeIcon: { backgroundColor: '#E8F7F1' },
-  expenseIcon: { backgroundColor: '#FDECEF' },
+  // Véu da própria cor semântica em vez de um tom claro fixo: assim o fundo
+  // acompanha o tema em vez de virar uma mancha clara no escuro.
+  incomeIcon: { backgroundColor: `${colors.positive}22` },
+  expenseIcon: { backgroundColor: `${colors.negative}22` },
   info: { flex: 1, marginRight: 12 },
   description: { fontSize: 15, fontWeight: '600', color: colors.ink },
   meta: { fontSize: 12, color: colors.muted, marginTop: 3 },
-});
+  });

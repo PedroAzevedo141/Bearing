@@ -9,9 +9,10 @@ import { EmptyState } from '../../../src/components/EmptyState';
 import { ScreenHeader } from '../../../src/components/ScreenHeader';
 import { SwipeableRow } from '../../../src/components/SwipeableRow';
 import { useChatConversations } from '../../../src/hooks/useChat';
-import { colors } from '../../../src/theme/colors';
+import { useThemeColors } from '../../../src/theme/colors';
 
 export default function ChatIndexScreen() {
+  const themeColors = useThemeColors();
   const { conversations, load, create, remove } = useChatConversations();
   const [newTitle, setNewTitle] = useState('');
   const [isCreating, setIsCreating] = useState(false);
@@ -42,9 +43,9 @@ export default function ChatIndexScreen() {
               description="Converse sobre seus gastos, parcelas e metas sem expor seu histórico bruto."
               icon="message-processing-outline"
             />
-            <View className="mx-5 mb-5 rounded-3xl bg-ink p-5">
+            <View className="mx-5 mb-5 rounded-3xl bg-spotlight p-5">
               <View className="h-11 w-11 items-center justify-center rounded-2xl bg-white/10">
-                <MaterialCommunityIcons name="creation-outline" size={23} color="#9EB4FF" />
+                <MaterialCommunityIcons name="creation-outline" size={23} color={themeColors.onSpotlight} />
               </View>
               <Text className="mt-4 text-xl font-bold text-white">
                 Pergunte com seus números em mente
@@ -58,7 +59,7 @@ export default function ChatIndexScreen() {
                 onPress={() => setIsCreating(true)}
                 style={{ marginTop: 16, alignSelf: 'flex-start' }}
                 buttonColor="#FFFFFF"
-                textColor={colors.ink}
+                textColor={themeColors.ink}
               >
                 Nova conversa
               </Button>
@@ -84,7 +85,7 @@ export default function ChatIndexScreen() {
                   <MaterialCommunityIcons
                     name="message-text-outline"
                     size={21}
-                    color={colors.primary}
+                    color={themeColors.primary}
                   />
                 </View>
                 <View className="flex-1">
@@ -93,7 +94,7 @@ export default function ChatIndexScreen() {
                     {new Date(item.updated_at * 1000).toLocaleString('pt-BR')}
                   </Text>
                 </View>
-                <MaterialCommunityIcons name="chevron-right" size={22} color={colors.muted} />
+                <MaterialCommunityIcons name="chevron-right" size={22} color={themeColors.muted} />
               </TouchableOpacity>
             </SwipeableRow>
           </View>
@@ -123,7 +124,7 @@ export default function ChatIndexScreen() {
           contentContainerStyle={{
             margin: 20,
             borderRadius: 24,
-            backgroundColor: colors.surface,
+            backgroundColor: themeColors.surface,
             padding: 20,
           }}
         >

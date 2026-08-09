@@ -12,11 +12,12 @@ import { GoalCard } from '../../src/components/GoalCard';
 import { ScreenHeader } from '../../src/components/ScreenHeader';
 import { SwipeableRow } from '../../src/components/SwipeableRow';
 import { useGoals } from '../../src/hooks/useGoals';
-import { colors } from '../../src/theme/colors';
+import { useThemeColors } from '../../src/theme/colors';
 import type { Goal } from '../../src/types';
 import { formatCents, parseCents } from '../../src/utils/money';
 
 export default function MetasScreen() {
+  const themeColors = useThemeColors();
   const { goals, addGoal, editGoal, contribute, removeGoal } = useGoals();
   const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
   const selectedGoal = useMemo(
@@ -97,7 +98,7 @@ export default function MetasScreen() {
                 description="Transforme planos grandes em pequenos avanços visíveis."
                 icon="target"
               />
-              <View className="mx-5 mb-5 overflow-hidden rounded-3xl bg-ink p-5">
+              <View className="mx-5 mb-5 overflow-hidden rounded-3xl bg-spotlight p-5">
                 <View className="flex-row items-center justify-between">
                   <View>
                     <Text className="text-sm text-white/60">Progresso combinado</Text>
@@ -142,7 +143,7 @@ export default function MetasScreen() {
               <View className="mx-5 mt-3 rounded-3xl border border-primary/20 bg-tint p-4">
                 <View className="mb-3 flex-row items-center gap-3">
                   <View className="h-10 w-10 items-center justify-center rounded-xl bg-surface">
-                    <MaterialCommunityIcons name="piggy-bank-outline" size={21} color={colors.primary} />
+                    <MaterialCommunityIcons name="piggy-bank-outline" size={21} color={themeColors.primary} />
                   </View>
                   <View className="flex-1">
                     <Text className="text-base font-bold text-ink">Aportar em {selectedGoal.name}</Text>
@@ -162,7 +163,7 @@ export default function MetasScreen() {
                     keyboardType="decimal-pad"
                     value={contribution}
                     onChangeText={setContribution}
-                    style={{ flex: 1, backgroundColor: colors.surface }}
+                    style={{ flex: 1, backgroundColor: themeColors.surface }}
                   />
                   <Button mode="contained" onPress={handleContribute} disabled={!contribution.trim()}>
                     Aportar
@@ -188,7 +189,7 @@ export default function MetasScreen() {
               margin: 20,
               borderRadius: 24,
               overflow: 'hidden',
-              backgroundColor: colors.surface,
+              backgroundColor: themeColors.surface,
             }}
           >
             <View className="px-4 pt-4">

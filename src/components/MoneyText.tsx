@@ -6,7 +6,7 @@
 import React from 'react';
 import { StyleSheet, Text, type TextStyle } from 'react-native';
 
-import { colors } from '../theme/colors';
+import { useThemeColors } from '../theme/colors';
 import { formatCents } from '../utils/money';
 
 interface MoneyTextProps {
@@ -17,13 +17,12 @@ interface MoneyTextProps {
 }
 
 export function MoneyText({ cents, style }: MoneyTextProps) {
-  const color = cents > 0 ? styles.positive : cents < 0 ? styles.negative : styles.neutral;
-  return <Text style={[styles.base, color, style]}>{formatCents(cents)}</Text>;
+  const themeColors = useThemeColors();
+  const color = cents > 0 ? themeColors.positive : cents < 0 ? themeColors.negative : themeColors.muted;
+  return <Text style={[styles.base, { color }, style]}>{formatCents(cents)}</Text>;
 }
 
+// Só o que não depende do tema fica no StyleSheet de módulo; a cor vem do hook.
 const styles = StyleSheet.create({
   base: { fontVariant: ['tabular-nums'], fontWeight: '700' },
-  positive: { color: colors.positive },
-  negative: { color: colors.negative },
-  neutral: { color: colors.muted },
 });

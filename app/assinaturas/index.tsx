@@ -6,9 +6,10 @@ import { useRecurring } from '../../src/hooks/useRecurring';
 import { getOrCreateTag } from '../../src/db/queries/tags';
 import { parseCents } from '../../src/utils/money';
 import { SwipeableRow } from '../../src/components/SwipeableRow';
-import { colors } from '../../src/theme/colors';
+import { useThemeColors } from '../../src/theme/colors';
 
 export default function RecurringManageScreen() {
+  const themeColors = useThemeColors();
   const { recurrings, addRecurring, removeRecurring } = useRecurring();
   
   const [name, setName] = useState('');
@@ -54,13 +55,13 @@ export default function RecurringManageScreen() {
           title: 'Assinaturas',
           headerShown: true,
           headerShadowVisible: false,
-          headerStyle: { backgroundColor: colors.background },
-          headerTintColor: colors.ink,
+          headerStyle: { backgroundColor: themeColors.background },
+          headerTintColor: themeColors.ink,
         }}
       />
       
       <View className="p-4 bg-surface border-b border-border gap-2">
-        <Text className="text-sm text-neutral-600 mb-2">
+        <Text className="text-sm text-muted mb-2">
           Cadastre despesas recorrentes (ex: Netflix, Academia). O app avisará você todo mês no dia estipulado para confirmar o pagamento.
         </Text>
         
@@ -109,8 +110,8 @@ export default function RecurringManageScreen() {
           <SwipeableRow onDelete={() => removeRecurring(item.id)}>
             <View className="px-6 py-4 bg-surface flex-row justify-between items-center">
               <View>
-                <Text className="text-base font-bold text-neutral-900">{item.name}</Text>
-                <Text className="text-sm text-neutral-600">
+                <Text className="text-base font-bold text-ink">{item.name}</Text>
+                <Text className="text-sm text-muted">
                   Todo dia {item.day_of_month} {item.tagName ? `• ${item.tagName}` : ''}
                 </Text>
               </View>

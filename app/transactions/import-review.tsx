@@ -7,9 +7,10 @@ import { parseStatementText, saveParsedItems } from '../../src/services/statemen
 import type { ParsedStatementItem } from '../../src/types';
 import { centsToAmountInput, parseCents } from '../../src/utils/money';
 import { SwipeableRow } from '../../src/components/SwipeableRow';
-import { colors } from '../../src/theme/colors';
+import { useThemeColors } from '../../src/theme/colors';
 
 export default function ImportReviewScreen() {
+  const themeColors = useThemeColors();
   const { text } = useLocalSearchParams<{ text: string }>();
   const [items, setItems] = useState<ParsedStatementItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,7 +66,7 @@ export default function ImportReviewScreen() {
             <Text className="text-xs font-bold uppercase tracking-wider text-primary">
               Lançamento {index + 1}
             </Text>
-            <MaterialCommunityIcons name="drag-horizontal-variant" size={20} color={colors.muted} />
+            <MaterialCommunityIcons name="drag-horizontal-variant" size={20} color={themeColors.muted} />
           </View>
           <TextInput
             mode="outlined"
@@ -88,7 +89,7 @@ export default function ImportReviewScreen() {
             />
             <Button
               mode={item.type === 'expense' ? 'contained' : 'outlined'}
-              buttonColor={item.type === 'expense' ? colors.negative : undefined}
+              buttonColor={item.type === 'expense' ? themeColors.negative : undefined}
               onPress={() => updateItem(index, { type: item.type === 'expense' ? 'income' : 'expense' })}
             >
               {item.type === 'expense' ? 'Saída' : 'Entrada'}
@@ -139,7 +140,7 @@ export default function ImportReviewScreen() {
 
           {item.is_subscription && (
             <View className="flex-row items-center gap-2 rounded-2xl bg-tint px-3 py-2">
-              <MaterialCommunityIcons name="information-outline" size={16} color={colors.primary} />
+              <MaterialCommunityIcons name="information-outline" size={16} color={themeColors.primary} />
               <Text className="flex-1 text-xs leading-4 text-muted">
                 Registramos a cobrança deste mês e criamos um lembrete mensal em Assinaturas.
               </Text>
@@ -166,7 +167,7 @@ export default function ImportReviewScreen() {
     return (
       <View className="flex-1 items-center justify-center bg-background p-4 gap-4">
         <View className="h-14 w-14 items-center justify-center rounded-2xl bg-red-50">
-          <MaterialCommunityIcons name="alert-circle-outline" size={28} color={colors.negative} />
+          <MaterialCommunityIcons name="alert-circle-outline" size={28} color={themeColors.negative} />
         </View>
         <Text className="text-center text-lg font-bold text-negative">Não foi possível analisar</Text>
         <Text className="text-center text-muted">{error}</Text>
@@ -182,8 +183,8 @@ export default function ImportReviewScreen() {
           title: 'Revisar lançamentos',
           headerShown: true,
           headerShadowVisible: false,
-          headerStyle: { backgroundColor: colors.background },
-          headerTintColor: colors.ink,
+          headerStyle: { backgroundColor: themeColors.background },
+          headerTintColor: themeColors.ink,
         }}
       />
       <FlatList
@@ -218,7 +219,7 @@ export default function ImportReviewScreen() {
             </View>
           ) : (
             <View className="p-4 items-center">
-              <Text className="text-neutral-600 mb-4">Nenhum item identificado.</Text>
+              <Text className="text-muted mb-4">Nenhum item identificado.</Text>
               <Button mode="outlined" onPress={() => router.back()}>Voltar</Button>
             </View>
           )

@@ -27,7 +27,7 @@ import { useBudgets } from '../../src/hooks/useBudgets';
 import { useInstallments } from '../../src/hooks/useInstallments';
 import { usePendingRecurring } from '../../src/hooks/useRecurring';
 import { useTransactions } from '../../src/hooks/useTransactions';
-import { colors } from '../../src/theme/colors';
+import { useThemeColors } from '../../src/theme/colors';
 import type { Tag, Transaction } from '../../src/types';
 import {
   currentMonthRef,
@@ -47,6 +47,7 @@ interface MonthSwitcherProps {
 
 /** Navegação ‹ mês › do cabeçalho da Rotação. */
 function MonthSwitcher({ month, onChange, atCurrentMonth }: MonthSwitcherProps) {
+  const themeColors = useThemeColors();
   return (
     <View className="flex-row items-center gap-1 rounded-2xl border border-border bg-surface px-1 py-1">
       <TouchableOpacity
@@ -55,7 +56,7 @@ function MonthSwitcher({ month, onChange, atCurrentMonth }: MonthSwitcherProps) 
         accessibilityRole="button"
         accessibilityLabel="Mês anterior"
       >
-        <MaterialCommunityIcons name="chevron-left" size={22} color={colors.ink} />
+        <MaterialCommunityIcons name="chevron-left" size={22} color={themeColors.ink} />
       </TouchableOpacity>
       <Text className="min-w-[76px] text-center text-sm font-bold capitalize text-ink">
         {formatMonthLabel(month)}
@@ -70,7 +71,7 @@ function MonthSwitcher({ month, onChange, atCurrentMonth }: MonthSwitcherProps) 
         <MaterialCommunityIcons
           name="chevron-right"
           size={22}
-          color={atCurrentMonth ? colors.muted : colors.ink}
+          color={atCurrentMonth ? themeColors.muted : themeColors.ink}
         />
       </TouchableOpacity>
     </View>
@@ -85,6 +86,7 @@ interface QuickActionProps {
 }
 
 function QuickAction({ icon, label, hint, onPress }: QuickActionProps) {
+  const themeColors = useThemeColors();
   return (
     <TouchableOpacity
       className="min-w-0 flex-1 basis-[46%] rounded-2xl border border-border bg-surface p-2.5"
@@ -94,7 +96,7 @@ function QuickAction({ icon, label, hint, onPress }: QuickActionProps) {
       accessibilityLabel={`${label}: ${hint}`}
     >
       <View className="mb-2.5 h-9 w-9 items-center justify-center rounded-xl bg-tint">
-        <MaterialCommunityIcons name={icon} size={19} color={colors.primary} />
+        <MaterialCommunityIcons name={icon} size={19} color={themeColors.primary} />
       </View>
       <Text
         className="text-sm font-bold text-ink"
@@ -112,6 +114,7 @@ function QuickAction({ icon, label, hint, onPress }: QuickActionProps) {
 }
 
 export default function RotacaoScreen() {
+  const themeColors = useThemeColors();
   const [month, setMonth] = useState<MonthRef>(() => currentMonthRef());
   const atCurrentMonth = isSameMonth(month, currentMonthRef());
   const {
@@ -202,7 +205,7 @@ export default function RotacaoScreen() {
         }
       />
 
-      <View className="mx-5 overflow-hidden rounded-3xl bg-ink p-5">
+      <View className="mx-5 overflow-hidden rounded-3xl bg-spotlight p-5">
         <View className="flex-row items-center justify-between">
           <View className="flex-1">
             <Text className="text-sm font-medium text-white/60">Saldo do mês</Text>
@@ -214,7 +217,7 @@ export default function RotacaoScreen() {
                 <MaterialCommunityIcons
                   name={monthComparison.improved ? 'trending-up' : 'trending-down'}
                   size={15}
-                  color={monthComparison.improved ? colors.positive : colors.negative}
+                  color={monthComparison.improved ? themeColors.positive : themeColors.negative}
                 />
                 <Text className="text-xs text-white/60">{monthComparison.label}</Text>
               </View>
@@ -243,7 +246,7 @@ export default function RotacaoScreen() {
               <MaterialCommunityIcons
                 name="credit-card-clock-outline"
                 size={21}
-                color={colors.primary}
+                color={themeColors.primary}
               />
             </View>
             <View>
@@ -261,7 +264,7 @@ export default function RotacaoScreen() {
         <View className="mx-5 mt-4 rounded-3xl border border-border bg-surface p-4">
           <View className="mb-3 flex-row items-center gap-3">
             <View className="h-10 w-10 items-center justify-center rounded-2xl bg-tint">
-              <MaterialCommunityIcons name="bell-alert-outline" size={21} color={colors.accent} />
+              <MaterialCommunityIcons name="bell-alert-outline" size={21} color={themeColors.accent} />
             </View>
             <View className="flex-1">
               <Text className="text-sm font-bold text-ink">Assinaturas a confirmar</Text>
@@ -285,7 +288,7 @@ export default function RotacaoScreen() {
               <Text className="mr-2 text-sm font-bold text-ink">
                 {formatCents(item.amount_cents)}
               </Text>
-              <MaterialCommunityIcons name="chevron-right" size={20} color={colors.muted} />
+              <MaterialCommunityIcons name="chevron-right" size={20} color={themeColors.muted} />
             </TouchableOpacity>
           ))}
         </View>
@@ -331,7 +334,7 @@ export default function RotacaoScreen() {
           {budgets.map((budget) => {
             const progress = Math.min(budget.spentCents / budget.limit_cents, 1);
             const progressColor =
-              progress >= 0.9 ? colors.negative : budget.tagColor || colors.accent;
+              progress >= 0.9 ? themeColors.negative : budget.tagColor || themeColors.accent;
             return (
               <View key={budget.id} className="mb-3 last:mb-0">
                 <View className="mb-1.5 flex-row justify-between">
@@ -340,7 +343,7 @@ export default function RotacaoScreen() {
                     {formatCents(budget.spentCents)} de {formatCents(budget.limit_cents)}
                   </Text>
                 </View>
-                <View className="h-2 overflow-hidden rounded-full bg-slate-100">
+                <View className="h-2 overflow-hidden rounded-full bg-track">
                   <View
                     className="h-full rounded-full"
                     style={{ width: `${progress * 100}%`, backgroundColor: progressColor }}
@@ -413,7 +416,7 @@ export default function RotacaoScreen() {
               margin: 20,
               borderRadius: 24,
               overflow: 'hidden',
-              backgroundColor: colors.surface,
+              backgroundColor: themeColors.surface,
             }}
           >
             <View className="px-4 pt-4">

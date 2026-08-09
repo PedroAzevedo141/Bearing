@@ -20,7 +20,7 @@ import {
   exportTransactionsCsv,
   pickBackupToRestore,
 } from '../../src/services/backupService';
-import { colors } from '../../src/theme/colors';
+import { useThemeColors } from '../../src/theme/colors';
 
 type Busy = 'export' | 'csv' | 'restore' | null;
 
@@ -45,6 +45,7 @@ function ActionCard({
   disabled,
   tone = 'default',
 }: ActionCardProps) {
+  const themeColors = useThemeColors();
   return (
     <View className="rounded-3xl border border-border bg-surface p-4">
       <View className="flex-row items-center gap-3">
@@ -52,7 +53,7 @@ function ActionCard({
           <MaterialCommunityIcons
             name={icon}
             size={21}
-            color={tone === 'destructive' ? colors.negative : colors.primary}
+            color={tone === 'destructive' ? themeColors.negative : themeColors.primary}
           />
         </View>
         <Text className="flex-1 text-base font-bold text-ink">{title}</Text>
@@ -63,7 +64,7 @@ function ActionCard({
         onPress={onPress}
         loading={loading}
         disabled={disabled}
-        textColor={tone === 'destructive' ? colors.negative : undefined}
+        textColor={tone === 'destructive' ? themeColors.negative : undefined}
         style={{ marginTop: 16 }}
       >
         {actionLabel}
@@ -73,6 +74,7 @@ function ActionCard({
 }
 
 export default function BackupScreen() {
+  const themeColors = useThemeColors();
   const [busy, setBusy] = useState<Busy>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -140,8 +142,8 @@ export default function BackupScreen() {
           title: 'Backup',
           headerShown: true,
           headerShadowVisible: false,
-          headerStyle: { backgroundColor: colors.background },
-          headerTintColor: colors.ink,
+          headerStyle: { backgroundColor: themeColors.background },
+          headerTintColor: themeColors.ink,
         }}
       />
 
@@ -193,7 +195,7 @@ export default function BackupScreen() {
 
         {busy !== null ? (
           <View className="flex-row items-center justify-center gap-2 py-2">
-            <ActivityIndicator size="small" color={colors.primary} />
+            <ActivityIndicator size="small" color={themeColors.primary} />
             <Text className="text-sm text-muted">Processando…</Text>
           </View>
         ) : null}

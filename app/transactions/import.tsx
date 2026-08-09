@@ -19,7 +19,7 @@ import {
 import { ActivityIndicator, Button, TextInput } from 'react-native-paper';
 
 import { fetchExtractStatementPdf } from '../../src/services/aiService';
-import { colors } from '../../src/theme/colors';
+import { useThemeColors } from '../../src/theme/colors';
 
 const ocrAvailable = Constants.executionEnvironment !== ExecutionEnvironment.StoreClient;
 const TextRecognition: typeof import('@react-native-ml-kit/text-recognition').default | null =
@@ -43,6 +43,7 @@ try {
 type LoadingSource = 'pdf' | 'image' | null;
 
 export default function ImportOCRScreen() {
+  const themeColors = useThemeColors();
   const [ocrText, setOcrText] = useState('');
   const [loadingSource, setLoadingSource] = useState<LoadingSource>(null);
   const [pdfName, setPdfName] = useState<string | null>(null);
@@ -163,8 +164,8 @@ export default function ImportOCRScreen() {
           title: 'Importar extrato',
           headerShown: true,
           headerShadowVisible: false,
-          headerStyle: { backgroundColor: colors.background },
-          headerTintColor: colors.ink,
+          headerStyle: { backgroundColor: themeColors.background },
+          headerTintColor: themeColors.ink,
         }}
       />
       <ScrollView contentContainerClassName="gap-4 px-5 pb-10 pt-4">
@@ -178,10 +179,10 @@ export default function ImportOCRScreen() {
           </Text>
         </View>
 
-        <View className="rounded-3xl bg-ink p-5">
+        <View className="rounded-3xl bg-spotlight p-5">
           <View className="flex-row items-start gap-4">
             <View className="h-12 w-12 items-center justify-center rounded-2xl bg-white/10">
-              <MaterialCommunityIcons name="file-pdf-box" size={25} color="#9EB4FF" />
+              <MaterialCommunityIcons name="file-pdf-box" size={25} color={themeColors.onSpotlight} />
             </View>
             <View className="flex-1">
               <Text className="text-lg font-bold text-white">Selecionar PDF</Text>
@@ -196,7 +197,7 @@ export default function ImportOCRScreen() {
             onPress={handlePickPdf}
             disabled={loading}
             buttonColor="#FFFFFF"
-            textColor={colors.ink}
+            textColor={themeColors.ink}
             style={{ marginTop: 16 }}
           >
             Escolher arquivo
@@ -213,7 +214,7 @@ export default function ImportOCRScreen() {
           <View className="rounded-3xl border border-border bg-surface p-4">
             <View className="flex-row items-center gap-3">
               <View className="h-11 w-11 items-center justify-center rounded-2xl bg-tint">
-                <MaterialCommunityIcons name="camera-outline" size={22} color={colors.primary} />
+                <MaterialCommunityIcons name="camera-outline" size={22} color={themeColors.primary} />
               </View>
               <View className="flex-1">
                 <Text className="text-base font-bold text-ink">Foto ou captura de tela</Text>
@@ -243,7 +244,7 @@ export default function ImportOCRScreen() {
           </View>
         ) : (
           <View className="flex-row gap-3 rounded-2xl border border-border bg-surface p-4">
-            <MaterialCommunityIcons name="shield-lock-outline" size={21} color={colors.accent} />
+            <MaterialCommunityIcons name="shield-lock-outline" size={21} color={themeColors.accent} />
             <Text className="flex-1 text-sm leading-5 text-muted">
               No Expo Go, use PDF ou cole o texto. A leitura local de fotos fica disponível no app
               instalado.
@@ -262,11 +263,11 @@ export default function ImportOCRScreen() {
             value={ocrText}
             onChangeText={setOcrText}
             placeholder="Cole o texto do banco ou selecione um arquivo acima…"
-            style={{ minHeight: 220, backgroundColor: colors.surface }}
+            style={{ minHeight: 220, backgroundColor: themeColors.surface }}
             disabled={loading}
           />
           <View className="mt-3 flex-row items-center gap-2">
-            <MaterialCommunityIcons name="shield-check-outline" size={18} color={colors.accent} />
+            <MaterialCommunityIcons name="shield-check-outline" size={18} color={themeColors.accent} />
             <Text className="flex-1 text-xs leading-4 text-muted">
               Só o texto revisado segue para classificação na próxima etapa.
             </Text>

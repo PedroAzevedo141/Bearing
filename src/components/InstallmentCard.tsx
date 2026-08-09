@@ -6,10 +6,10 @@
  * pra manter a lógica de dados isolada em src/db/queries.
  */
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors } from '../theme/colors';
+import { useThemeColors, type ThemeColors } from '../theme/colors';
 import { formatCents } from '../utils/money';
 
 interface InstallmentCardProps {
@@ -32,6 +32,8 @@ export function InstallmentCard({
   installmentCount,
   installmentAmountCents,
 }: InstallmentCardProps) {
+  const themeColors = useThemeColors();
+  const styles = useMemo(() => createStyles(themeColors), [themeColors]);
   const paid = Math.min(currentInstallment - 1, installmentCount);
   const progress = installmentCount > 0 ? paid / installmentCount : 0;
   const remainingCents = (installmentCount - paid) * installmentAmountCents;
@@ -40,7 +42,7 @@ export function InstallmentCard({
     <View style={styles.card}>
       <View style={styles.header}>
         <View style={styles.icon}>
-          <MaterialCommunityIcons name="credit-card-outline" size={20} color={colors.primary} />
+          <MaterialCommunityIcons name="credit-card-outline" size={20} color={themeColors.primary} />
         </View>
         <View style={styles.titleBlock}>
           <Text style={styles.name} numberOfLines={1}>
@@ -65,7 +67,13 @@ export function InstallmentCard({
   );
 }
 
-const styles = StyleSheet.create({
+/**
+ * Estilos dependem do tema, então são uma fábrica em vez de constante de
+ * módulo: `StyleSheet.create` no topo do arquivo congelaria as cores do tema
+ * claro na primeira avaliação.
+ */
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
     borderRadius: 20,
@@ -98,11 +106,11 @@ const styles = StyleSheet.create({
   track: {
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#EDF1F7',
+    backgroundColor: colors.track,
     marginTop: 16,
     overflow: 'hidden',
   },
   fill: { height: '100%', backgroundColor: colors.primary, borderRadius: 4 },
   footer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
   detail: { fontSize: 13, color: colors.muted, fontWeight: '500' },
-});
+  });

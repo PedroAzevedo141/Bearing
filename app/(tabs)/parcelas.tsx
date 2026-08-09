@@ -13,7 +13,7 @@ import { ScreenHeader } from '../../src/components/ScreenHeader';
 import { SwipeableRow } from '../../src/components/SwipeableRow';
 import { listTags } from '../../src/db/queries/tags';
 import { useInstallments } from '../../src/hooks/useInstallments';
-import { colors } from '../../src/theme/colors';
+import { useThemeColors } from '../../src/theme/colors';
 import type { InstallmentPurchase, Tag } from '../../src/types';
 import {
   currentInstallmentFor,
@@ -23,6 +23,7 @@ import {
 } from '../../src/utils/money';
 
 export default function ParcelasScreen() {
+  const themeColors = useThemeColors();
   const { purchases, addPurchase, editPurchase, removePurchase } = useInstallments();
   const activePurchases = useMemo(
     () => purchases.filter((purchase) => !isInstallmentCompleted(purchase)),
@@ -118,13 +119,13 @@ export default function ParcelasScreen() {
                 icon="credit-card-clock-outline"
               />
               <View className="mx-5 mb-5 flex-row gap-3">
-                <View className="flex-1 rounded-3xl bg-ink p-4">
-                  <MaterialCommunityIcons name="calendar-month-outline" size={21} color="#9EB4FF" />
+                <View className="flex-1 rounded-3xl bg-spotlight p-4">
+                  <MaterialCommunityIcons name="calendar-month-outline" size={21} color={themeColors.onSpotlight} />
                   <Text className="mt-4 text-xs text-white/60">Por mês</Text>
                   <Text className="mt-1 text-lg font-bold text-white">{formatCents(monthlyTotal)}</Text>
                 </View>
                 <View className="flex-1 rounded-3xl border border-border bg-surface p-4">
-                  <MaterialCommunityIcons name="timer-sand" size={21} color={colors.accent} />
+                  <MaterialCommunityIcons name="timer-sand" size={21} color={themeColors.accent} />
                   <Text className="mt-4 text-xs text-muted">A quitar</Text>
                   <Text className="mt-1 text-lg font-bold text-ink">{formatCents(remainingTotal)}</Text>
                 </View>
@@ -177,7 +178,7 @@ export default function ParcelasScreen() {
               margin: 20,
               borderRadius: 24,
               overflow: 'hidden',
-              backgroundColor: colors.surface,
+              backgroundColor: themeColors.surface,
             }}
           >
             <View className="px-4 pt-4">

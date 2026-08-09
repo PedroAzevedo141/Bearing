@@ -3,21 +3,24 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
 
+import { useThemeColors } from '../../src/theme/colors';
+
 export default function TabsLayout() {
+  const themeColors = useThemeColors();
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#315CF5',
-        tabBarInactiveTintColor: '#98A2B3',
+        tabBarActiveTintColor: themeColors.primary,
+        tabBarInactiveTintColor: themeColors.muted,
         tabBarHideOnKeyboard: true,
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600', marginTop: 2 },
         tabBarStyle: {
           height: 72,
           paddingTop: 8,
           paddingBottom: 10,
-          borderTopColor: '#E3E9F2',
-          backgroundColor: '#FFFFFF',
+          borderTopColor: themeColors.border,
+          backgroundColor: themeColors.surface,
         },
       }}
     >

@@ -4,10 +4,11 @@ import { View, Text, ActivityIndicator } from 'react-native';
 import { getRecurringById, RecurringWithTag } from '../../../src/db/queries/recurring';
 import { TransactionForm } from '../../../src/components/forms/TransactionForm';
 import { useTransactions } from '../../../src/hooks/useTransactions';
-import { colors } from '../../../src/theme/colors';
+import { useThemeColors } from '../../../src/theme/colors';
 import { currentMonthRef } from '../../../src/utils/date';
 
 export default function ConfirmRecurringScreen() {
+  const themeColors = useThemeColors();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [recurring, setRecurring] = useState<RecurringWithTag | null>(null);
   const [loading, setLoading] = useState(true);
@@ -32,8 +33,8 @@ export default function ConfirmRecurringScreen() {
         title: 'Confirmar assinatura',
         headerShown: true,
         headerShadowVisible: false,
-        headerStyle: { backgroundColor: colors.background },
-        headerTintColor: colors.ink,
+        headerStyle: { backgroundColor: themeColors.background },
+        headerTintColor: themeColors.ink,
       }}
     />
   );
@@ -54,7 +55,7 @@ export default function ConfirmRecurringScreen() {
       <>
         {header}
         <View className="flex-1 justify-center items-center bg-background p-4">
-          <Text className="text-lg text-neutral-800 text-center">Assinatura não encontrada.</Text>
+          <Text className="text-lg text-ink text-center">Assinatura não encontrada.</Text>
         </View>
       </>
     );
@@ -64,7 +65,7 @@ export default function ConfirmRecurringScreen() {
     <View className="flex-1 bg-background">
       {header}
       <View className="p-4">
-        <Text className="text-base text-neutral-800 mb-4 text-center">
+        <Text className="text-base text-ink mb-4 text-center">
           Chegou o dia de registrar o pagamento da sua assinatura. Confirme os dados abaixo para registrar na sua movimentação.
         </Text>
       </View>

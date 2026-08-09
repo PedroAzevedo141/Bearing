@@ -11,7 +11,7 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 
-import { colors } from '../theme/colors';
+import { useThemeColors } from '../theme/colors';
 
 interface SwipeableRowProps {
   /** Conteúdo normal da linha (o card/item já existente). */
@@ -26,20 +26,21 @@ interface SwipeableRowProps {
 }
 
 export function SwipeableRow({ children, onEdit, onDelete }: SwipeableRowProps) {
+  const themeColors = useThemeColors();
   return (
     <Swipeable
       renderRightActions={() => (
         <>
           {onEdit ? (
             <TouchableOpacity
-              style={[styles.action, { backgroundColor: colors.primary }]}
+              style={[styles.action, { backgroundColor: themeColors.primary }]}
               onPress={onEdit}
             >
               <Text style={styles.actionLabel}>Editar</Text>
             </TouchableOpacity>
           ) : null}
           <TouchableOpacity
-            style={[styles.action, { backgroundColor: colors.negative }]}
+            style={[styles.action, { backgroundColor: themeColors.negative }]}
             onPress={onDelete}
           >
             <Text style={styles.actionLabel}>Excluir</Text>

@@ -3,10 +3,11 @@ import React, { useEffect, useState, useRef } from 'react';
 import { FlatList, KeyboardAvoidingView, Platform, Text, View } from 'react-native';
 import { ActivityIndicator, IconButton, Snackbar, TextInput } from 'react-native-paper';
 import { useChat } from '../../../src/hooks/useChat';
-import { colors } from '../../../src/theme/colors';
+import { useThemeColors } from '../../../src/theme/colors';
 import type { ChatMessage } from '../../../src/types';
 
 export default function ChatSessionScreen() {
+  const themeColors = useThemeColors();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { messages, loading, error, loadMessages, sendMessage } = useChat(id);
   const [inputText, setInputText] = useState('');
@@ -90,7 +91,7 @@ export default function ChatSessionScreen() {
           <IconButton
             icon="arrow-up"
             mode="contained"
-            containerColor={colors.primary}
+            containerColor={themeColors.primary}
             iconColor="#FFFFFF"
             size={22}
             onPress={handleSend}

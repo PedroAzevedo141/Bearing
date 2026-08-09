@@ -6,9 +6,10 @@ import { useBudgets } from '../../src/hooks/useBudgets';
 import { getOrCreateTag } from '../../src/db/queries/tags';
 import { parseCents } from '../../src/utils/money';
 import { SwipeableRow } from '../../src/components/SwipeableRow';
-import { colors } from '../../src/theme/colors';
+import { useThemeColors } from '../../src/theme/colors';
 
 export default function BudgetManageScreen() {
+  const themeColors = useThemeColors();
   const { budgets, saveBudget, removeBudget } = useBudgets();
   const [tagName, setTagName] = useState('');
   const [limitAmount, setLimitAmount] = useState('');
@@ -41,13 +42,13 @@ export default function BudgetManageScreen() {
           title: 'Orçamentos',
           headerShown: true,
           headerShadowVisible: false,
-          headerStyle: { backgroundColor: colors.background },
-          headerTintColor: colors.ink,
+          headerStyle: { backgroundColor: themeColors.background },
+          headerTintColor: themeColors.ink,
         }}
       />
       
       <View className="p-4 bg-surface border-b border-border gap-2">
-        <Text className="text-sm text-neutral-600 mb-2">
+        <Text className="text-sm text-muted mb-2">
           Defina um limite mensal para os gastos de uma tag. Ao atingir 90%, você receberá um alerta.
           O limite passa a valer a partir deste mês — meses anteriores continuam avaliados pelo
           limite que valia neles.
@@ -78,8 +79,8 @@ export default function BudgetManageScreen() {
         renderItem={({ item }) => (
           <SwipeableRow onDelete={() => removeBudget(item.tag_id)}>
             <View className="px-6 py-4 bg-surface flex-row justify-between items-center">
-              <Text className="text-base font-bold text-neutral-900">{item.tagName}</Text>
-              <Text className="text-base text-neutral-600">Limite: R$ {(item.limit_cents / 100).toFixed(2).replace('.', ',')}</Text>
+              <Text className="text-base font-bold text-ink">{item.tagName}</Text>
+              <Text className="text-base text-muted">Limite: R$ {(item.limit_cents / 100).toFixed(2).replace('.', ',')}</Text>
             </View>
           </SwipeableRow>
         )}

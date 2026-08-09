@@ -11,7 +11,7 @@ import { Alert, View } from 'react-native';
 import { Button, TextInput } from 'react-native-paper';
 
 import type { TransactionInput } from '../../hooks/useTransactions';
-import { colors } from '../../theme/colors';
+import { useThemeColors } from '../../theme/colors';
 import type { Transaction, TransactionType } from '../../types';
 import { parseCents } from '../../utils/money';
 
@@ -35,6 +35,7 @@ export function TransactionForm({
   onSubmit,
   onCancel,
 }: TransactionFormProps) {
+  const themeColors = useThemeColors();
   const [amount, setAmount] = useState(
     initialTransaction ? String(initialTransaction.amount_cents / 100).replace('.', ',') : ''
   );
@@ -66,7 +67,7 @@ export function TransactionForm({
       <View className="flex-row gap-2">
         <Button
           mode={type === 'expense' ? 'contained' : 'outlined'}
-          buttonColor={type === 'expense' ? colors.negative : undefined}
+          buttonColor={type === 'expense' ? themeColors.negative : undefined}
           onPress={() => setType('expense')}
           style={{ flex: 1 }}
         >
@@ -74,7 +75,7 @@ export function TransactionForm({
         </Button>
         <Button
           mode={type === 'income' ? 'contained' : 'outlined'}
-          buttonColor={type === 'income' ? colors.positive : undefined}
+          buttonColor={type === 'income' ? themeColors.positive : undefined}
           onPress={() => setType('income')}
           style={{ flex: 1 }}
         >

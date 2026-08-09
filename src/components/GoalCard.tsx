@@ -4,10 +4,10 @@
  * ficam com o chamador.
  */
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import { colors } from '../theme/colors';
+import { useThemeColors, type ThemeColors } from '../theme/colors';
 import type { Goal } from '../types';
 import { formatCents } from '../utils/money';
 
@@ -18,6 +18,8 @@ interface GoalCardProps {
 }
 
 export function GoalCard({ goal, onPress }: GoalCardProps) {
+  const themeColors = useThemeColors();
+  const styles = useMemo(() => createStyles(themeColors), [themeColors]);
   const progress =
     goal.target_amount_cents > 0
       ? Math.min(goal.current_amount_cents / goal.target_amount_cents, 1)
@@ -30,7 +32,7 @@ export function GoalCard({ goal, onPress }: GoalCardProps) {
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
       <View style={styles.header}>
         <View style={styles.icon}>
-          <MaterialCommunityIcons name="flag-variant-outline" size={20} color={colors.accent} />
+          <MaterialCommunityIcons name="flag-variant-outline" size={20} color={themeColors.accent} />
         </View>
         <View style={styles.titleBlock}>
           <Text style={styles.name} numberOfLines={1}>
@@ -49,13 +51,19 @@ export function GoalCard({ goal, onPress }: GoalCardProps) {
         <Text style={styles.amount}>
           {formatCents(goal.current_amount_cents)} de {formatCents(goal.target_amount_cents)}
         </Text>
-        <MaterialCommunityIcons name="chevron-right" size={20} color={colors.muted} />
+        <MaterialCommunityIcons name="chevron-right" size={20} color={themeColors.muted} />
       </View>
     </TouchableOpacity>
   );
 }
 
-const styles = StyleSheet.create({
+/**
+ * Estilos dependem do tema, então são uma fábrica em vez de constante de
+ * módulo: `StyleSheet.create` no topo do arquivo congelaria as cores do tema
+ * claro na primeira avaliação.
+ */
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
     borderRadius: 20,
@@ -94,4 +102,4 @@ const styles = StyleSheet.create({
   footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 },
   detail: { fontSize: 12, color: colors.muted, marginTop: 2 },
   amount: { fontSize: 13, color: colors.muted, fontWeight: '600' },
-});
+  });

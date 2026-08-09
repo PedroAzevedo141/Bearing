@@ -1,3 +1,59 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/**
+ * Paleta como variáveis CSS, em canais RGB separados por espaço — o formato
+ * que o Tailwind precisa para aplicar opacidade (`bg-surface/60`) sobre uma
+ * variável.
+ *
+ * É aqui que o tema claro e o escuro se separam. Como as telas usam tokens
+ * semânticos (`bg-surface`, `text-ink`, `border-border`), trocar os valores
+ * abaixo troca o app inteiro sem tocar em JSX — só o que passa cor via `style`
+ * precisa do hook `useThemeColors` (src/theme/colors.ts).
+ *
+ * Fonte da verdade compartilhada com src/theme/colors.ts: mudou aqui, muda lá.
+ * Ver docs/adr/0005-design-system-nativewind-paper.md.
+ */
+@layer base {
+  :root {
+    --color-primary: 49 92 245;
+    --color-accent: 22 168 137;
+    --color-ink: 16 24 40;
+    --color-positive: 17 132 91;
+    --color-negative: 209 70 91;
+    --color-background: 244 247 251;
+    --color-surface: 255 255 255;
+    --color-border: 227 233 242;
+    --color-muted: 102 112 133;
+    --color-tint: 234 240 255;
+
+    /* Superfície de alto contraste dos cards de destaque (saldo, resumo).
+       No claro é quase preta; no escuro vira um cinza elevado — em ambos o
+       texto por cima é branco, então o contraste se mantém sem condicional. */
+    --color-spotlight: 16 24 40;
+    /* Ícone de destaque sobre o spotlight. */
+    --color-on-spotlight: 158 180 255;
+    /* Trilho de barra de progresso. */
+    --color-track: 241 245 249;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-primary: 138 165 255;
+      --color-accent: 45 200 165;
+      --color-ink: 236 240 248;
+      --color-positive: 60 190 135;
+      --color-negative: 240 120 138;
+      --color-background: 13 17 27;
+      --color-surface: 23 29 43;
+      --color-border: 42 51 70;
+      --color-muted: 148 160 182;
+      --color-tint: 32 43 74;
+
+      --color-spotlight: 30 39 58;
+      --color-on-spotlight: 158 180 255;
+      --color-track: 42 51 70;
+    }
+  }
+}
