@@ -4,7 +4,6 @@ import { Alert, FlatList, KeyboardAvoidingView, Platform, View, Text } from 'rea
 import { Button, SegmentedButtons, TextInput, ActivityIndicator } from 'react-native-paper';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { parseStatementText, saveParsedItems } from '../../src/services/statementService';
-import { getOrCreateDefaultAccount } from '../../src/db/queries/accounts';
 import type { ParsedStatementItem } from '../../src/types';
 import { centsToAmountInput, parseCents } from '../../src/utils/money';
 import { SwipeableRow } from '../../src/components/SwipeableRow';
@@ -39,8 +38,7 @@ export default function ImportReviewScreen() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const account = await getOrCreateDefaultAccount();
-      await saveParsedItems(items, account.id);
+      await saveParsedItems(items);
       router.replace('/rotacao'); // Volta para a Rotação após importar
     } catch {
       Alert.alert('Não consegui salvar', 'Algo deu errado ao gravar os itens. Tente de novo.');

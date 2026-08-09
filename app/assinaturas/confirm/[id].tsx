@@ -77,7 +77,6 @@ export default function ConfirmRecurringScreen() {
             description: recurring.name,
             type: 'expense',
             tag_id: recurring.tag_id,
-            account_id: 'temp',
             occurred_at: Math.floor(Date.now() / 1000),
             created_at: Math.floor(Date.now() / 1000)
           }}

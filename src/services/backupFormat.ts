@@ -32,7 +32,6 @@ export const BACKUP_FORMAT_TAG = 'bearing-backup';
  * a qualquer momento, e só faria o arquivo crescer.
  */
 export const BACKUP_TABLES = [
-  'accounts',
   'tags',
   // Antes de `transactions`: a v7 criou a FK transactions.recurring_id, e a
   // restauração roda com `PRAGMA foreign_keys = ON`.

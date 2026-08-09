@@ -14,7 +14,6 @@ import type { TagBalance, Transaction, TransactionType } from '../../types';
 
 /** Dados necessários para registrar uma transação. */
 export interface NewTransaction {
-  account_id: string;
   tag_id: string | null;
   /** Valor absoluto em centavos (o sinal vem de `type`). */
   amount_cents: number;
@@ -78,7 +77,6 @@ export async function createTransaction(data: NewTransaction): Promise<Transacti
   const now = Math.floor(Date.now() / 1000);
   const tx: Transaction = {
     id: Crypto.randomUUID(),
-    account_id: data.account_id,
     tag_id: data.tag_id,
     amount_cents: data.amount_cents,
     type: data.type,
@@ -88,10 +86,9 @@ export async function createTransaction(data: NewTransaction): Promise<Transacti
     recurring_id: data.recurring_id ?? null,
   };
   await db.runAsync(
-    `INSERT INTO transactions (id, account_id, tag_id, amount_cents, type, description, occurred_at, created_at, recurring_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO transactions (id, tag_id, amount_cents, type, description, occurred_at, created_at, recurring_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     tx.id,
-    tx.account_id,
     tx.tag_id,
     tx.amount_cents,
     tx.type,
@@ -113,9 +110,8 @@ export async function updateTransaction(id: string, data: NewTransaction): Promi
   const db = await getDb();
   await db.runAsync(
     `UPDATE transactions
-     SET account_id = ?, tag_id = ?, amount_cents = ?, type = ?, description = ?, occurred_at = ?
+     SET tag_id = ?, amount_cents = ?, type = ?, description = ?, occurred_at = ?
      WHERE id = ?`,
-    data.account_id,
     data.tag_id,
     data.amount_cents,
     data.type,

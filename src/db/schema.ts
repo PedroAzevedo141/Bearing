@@ -243,3 +243,41 @@ export const SCHEMA_V8_BUDGET_HISTORY = `
 ALTER TABLE budgets ADD COLUMN effective_from INTEGER NOT NULL DEFAULT 0;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_budgets_tag_effective ON budgets(tag_id, effective_from);
 `;
+
+/**
+ * SQL da migration v9: remove o conceito de contas/carteiras.
+ *
+ * `accounts` existia desde a v1, mas nenhuma tela jamais a expôs: o app criava
+ * uma "Carteira" implícita no primeiro uso e usava sempre ela. Toda transação
+ * carregava um `account_id` que nunca variava — cerimônia sem informação.
+ *
+ * Tabela viva que ninguém usa é pior que ausência: confunde quem lê o schema
+ * depois, e o `NOT NULL` obrigava cada caminho de escrita a resolver uma conta
+ * que não significava nada (a tela de confirmação de assinatura chegava a
+ * passar a string `'temp'` só para satisfazer o tipo).
+ *
+ * O Bearing é sobre **fluxo** de dinheiro, não sobre saldo por conta, e o caso
+ * de uso mais próximo — cartão de crédito — já é coberto por
+ * `installment_purchases`. Se um dia contas voltarem, voltam como feature
+ * desenhada, com tela e migration próprias.
+ */
+export const SCHEMA_V9_DROP_ACCOUNTS = `
+CREATE TABLE transactions_new (
+  id TEXT PRIMARY KEY,
+  tag_id TEXT REFERENCES tags(id),
+  amount_cents INTEGER NOT NULL CHECK (amount_cents > 0),
+  type TEXT NOT NULL CHECK (type IN ('income', 'expense')),
+  description TEXT,
+  occurred_at INTEGER NOT NULL,
+  created_at INTEGER NOT NULL,
+  recurring_id TEXT REFERENCES recurring_transactions(id)
+);
+INSERT INTO transactions_new
+  SELECT id, tag_id, amount_cents, type, description, occurred_at, created_at, recurring_id
+  FROM transactions;
+DROP TABLE transactions;
+ALTER TABLE transactions_new RENAME TO transactions;
+CREATE INDEX IF NOT EXISTS idx_transactions_occurred_at ON transactions(occurred_at);
+CREATE INDEX IF NOT EXISTS idx_transactions_recurring_id ON transactions(recurring_id);
+DROP TABLE IF EXISTS accounts;
+`;

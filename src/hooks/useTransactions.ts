@@ -7,7 +7,6 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 
-import { getOrCreateDefaultAccount } from '../db/queries/accounts';
 import { getOrCreateTag } from '../db/queries/tags';
 import {
   createTransaction,
@@ -50,8 +49,8 @@ export interface UseTransactionsResult {
   addTransaction: (input: TransactionInput) => Promise<void>;
   /**
    * Atualiza uma transação existente; a tag é criada se não existir.
-   * Preserva `account_id` e `occurred_at` do registro original — o
-   * formulário não coleta esses campos.
+   * Preserva `occurred_at` do registro original — o formulário não coleta
+   * esse campo.
    */
   editTransaction: (original: Transaction, input: TransactionInput) => Promise<void>;
   /** Remove uma transação e recarrega a lista. */
@@ -93,10 +92,8 @@ export function useTransactions(month: MonthRef): UseTransactionsResult {
 
   const addTransaction = useCallback(
     async (input: TransactionInput) => {
-      const account = await getOrCreateDefaultAccount();
       const tag = input.tagName ? await getOrCreateTag(input.tagName) : null;
       await createTransaction({
-        account_id: account.id,
         tag_id: tag?.id ?? null,
         amount_cents: input.amountCents,
         type: input.type,
@@ -112,7 +109,6 @@ export function useTransactions(month: MonthRef): UseTransactionsResult {
     async (original: Transaction, input: TransactionInput) => {
       const tag = input.tagName ? await getOrCreateTag(input.tagName) : null;
       await updateTransaction(original.id, {
-        account_id: original.account_id,
         tag_id: tag?.id ?? null,
         amount_cents: input.amountCents,
         type: input.type,

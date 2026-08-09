@@ -15,17 +15,6 @@ export type TransactionType = 'income' | 'expense';
 export type AiInsightKind = 'general_tip' | 'goal_plan';
 
 /**
- * Carteira/conta que o usuário mantém (ex: "Carteira", "Conta corrente").
- */
-export interface Account {
-  /** UUID gerado no client (expo-crypto). */
-  id: string;
-  name: string;
-  /** Unix timestamp em segundos. */
-  created_at: number;
-}
-
-/**
  * Categoria livre criada pelo usuário (ex: "mercado", "lazer").
  */
 export interface Tag {
@@ -44,7 +33,6 @@ export interface Tag {
  */
 export interface Transaction {
   id: string;
-  account_id: string;
   tag_id: string | null;
   /** Valor absoluto em centavos; o sinal é dado por `type`. */
   amount_cents: number;

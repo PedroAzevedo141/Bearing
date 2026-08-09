@@ -21,7 +21,6 @@ import {
 function tx(overrides: Partial<Transaction>): Transaction {
   return {
     id: 'tx-1',
-    account_id: 'acc-1',
     tag_id: null,
     amount_cents: 0,
     type: 'expense',

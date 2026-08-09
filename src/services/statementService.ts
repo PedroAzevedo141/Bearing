@@ -45,19 +45,15 @@ export async function parseStatementText(ocrText: string): Promise<ParsedStateme
  *
  * - Itens avulsos → `transactions`.
  * - Parcelas → casa com uma compra existente (`updateInstallmentPurchase`,
- *   avançando a parcela atual) ou cria uma nova (`createInstallmentPurchase`),
+ *   reancorando `first_due_date`) ou cria uma nova (`createInstallmentPurchase`),
  *   evitando duplicar a mesma compra a cada extrato mensal.
  * - Assinaturas → grava a transação **deste mês** (a cobrança aconteceu) E
  *   cadastra a recorrência para lembretes futuros, deduplicando por nome pra
  *   não criar uma assinatura repetida a cada extrato.
  *
  * @param items - Itens já revisados pelo usuário.
- * @param accountId - Conta destino das transações avulsas.
  */
-export async function saveParsedItems(
-  items: ParsedStatementItem[],
-  accountId: string
-): Promise<void> {
+export async function saveParsedItems(items: ParsedStatementItem[]): Promise<void> {
   const activeInstallments = await listInstallmentPurchases();
   const existingRecurring = await listRecurring();
 
@@ -77,7 +73,6 @@ export async function saveParsedItems(
       }
       // A cobrança do mês entra como transação normal (conta no saldo).
       await createTransaction({
-        account_id: accountId,
         tag_id: null,
         amount_cents: item.amount_cents,
         type: item.type,
@@ -115,7 +110,6 @@ export async function saveParsedItems(
       }
     } else {
       await createTransaction({
-        account_id: accountId,
         tag_id: null,
         amount_cents: item.amount_cents,
         type: item.type,

@@ -42,6 +42,10 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 - Aba **Dicas** (dica diária automática) foi **removida** e substituída pela aba **Chat** — o chat cobre o mesmo caso de uso de forma mais rica (o usuário pergunta o que quiser). O endpoint `/ai/insights` e o cache seguem existindo (usados internamente); só a aba deixou de existir. As 4 abas agora são Rotação, Parcelas, Chat e Metas.
 - Interface principal renovada com navegação por ícones, hierarquia visual mais clara, resumos contextuais, cartões de progresso, formulários em modais e ações rápidas.
 
+### Removido
+
+- Conceito de **contas/carteiras** (`accounts` e `transactions.account_id`), **migration v9**. A tabela existia desde a v1 mas nenhuma tela a expôs: o app criava uma "Carteira" implícita e usava sempre a mesma, então o campo nunca variava. Tabela viva sem uso confunde quem lê o schema e obrigava cada escrita a resolver uma conta sem significado. O app é sobre fluxo de dinheiro, não saldo por conta; cartão de crédito já é coberto por `installment_purchases`.
+
 ### Corrigido
 
 - Compra parcelada nunca era marcada como concluída: a seção "Concluídas" da aba Parcelas era inalcançável por construção. A UI define quitada como `current_installment > installment_count`, mas o `CHECK` da migration v2 proibia exatamente esse estado e o `advanceInstallment` travava no total. Junto disso, o contador só mudava se alguém o avançasse — e nada no app fazia isso, então a projeção de "quanto falta pagar" envelhecia em silêncio. **Migration v6** remove `current_installment`: a parcela atual agora é derivada de `first_due_date` + data de hoje (`currentInstallmentFor`), como já acontecia com o valor da parcela. Quem tinha compras cadastradas vai ver a posição corrigida para a que a data indica.
