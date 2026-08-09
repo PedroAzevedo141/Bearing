@@ -30,6 +30,7 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 - Importação de extrato por PDF (até 20 MB), com consentimento explícito, extração temporária no Worker e revisão do texto antes da classificação.
 - Componentes compartilhados de cabeçalho e estado vazio para dar consistência às áreas principais.
 - Aba **Rotação**: linha "Parcelas do mês" — soma derivada das parcelas ativas, sinalizada como compromisso fixo fora do saldo do período (nunca gravada como transação).
+- **Backup e exportação** (tela `/backup`, atalho na aba Rotação): exporta todos os dados num `.json` versionado, restaura a partir dele substituindo o conteúdo atual (com confirmação destrutiva), e gera um CSV das movimentações para planilha. O arquivo sai pelo share sheet do sistema — o app não envia nada sozinho. Nova dependência `expo-sharing`; ver ADR-0010. **Exige reconstruir o development build** (`npx expo run:android`).
 - `src/utils/date.ts`: aritmética de calendário compartilhada (`addMonths` com queda para o último dia do mês, `monthsBetween`, parsing/formatação de `DD/MM/AAAA`), com testes.
 - Importação de extrato: tipo **Assinatura** na Confirmação 2 (seletor Avulsa/Parcela/Assinatura). Marcar "Assinatura" grava a cobrança do mês E cadastra a recorrência para lembretes futuros, deduplicando por nome (dia do vencimento derivado da data da cobrança).
 

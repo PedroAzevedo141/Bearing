@@ -117,11 +117,17 @@ Supõe o Android Studio já instalado, com pelo menos um dispositivo virtual (AV
 
 #### Resetar os dados do app (voltar ao estado de instalação nova)
 
-Apaga todo o SQLite local, o SecureStore (config de biometria) e o cache de IA — não tem como desfazer. O binário `adb` fica em `<SDK do Android>/platform-tools`.
+Apaga todo o SQLite local, o SecureStore (config de biometria) e o cache de IA — não tem como desfazer. Se quiser preservar os dados, exporte um backup antes pela tela **Backup** (atalho na aba Rotação). O binário `adb` fica em `<SDK do Android>/platform-tools`.
 
 ```bash
 adb shell pm clear tech.ordep.bearing    # development build
 adb shell pm clear host.exp.exponent     # Expo Go — atenção: limpa TODOS os apps abertos no Expo Go, não só o Bearing
+```
+
+No development build, o `pm clear` também apaga a URL do Metro guardada pelo dev launcher, então o app abre na tela do launcher em vez de entrar direto. Para reconectar sem precisar tocar na tela:
+
+```bash
+adb shell am start -a android.intent.action.VIEW -d "bearing://expo-development-client/?url=http%3A%2F%2F<IP-do-Metro>%3A8081"
 ```
 
 ### Worker de IA (opcional para rodar o app; obrigatório para as features de IA)

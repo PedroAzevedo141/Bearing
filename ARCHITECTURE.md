@@ -67,3 +67,4 @@ Toda decisão arquitetural relevante (nova lib, mudança de padrão, nova integr
 | [0007 — Importação de extrato: OCR local + dupla confirmação](docs/adr/0007-importacao-extrato-ocr.md) | Aceito |
 | [0008 — Assinaturas: lembrete + confirmação humana](docs/adr/0008-assinaturas-confirmacao-humana.md) | Aceito |
 | [0009 — Chat com IA: tools no client](docs/adr/0009-chat-ia-tools-no-client.md) | Aceito |
+| [0010 — Backup local por arquivo, sem servidor](docs/adr/0010-backup-local.md) | Aceito |

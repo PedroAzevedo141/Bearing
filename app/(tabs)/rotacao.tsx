@@ -42,7 +42,7 @@ interface QuickActionProps {
 function QuickAction({ icon, label, hint, onPress }: QuickActionProps) {
   return (
     <TouchableOpacity
-      className="min-w-0 flex-1 rounded-2xl border border-border bg-surface p-2.5"
+      className="min-w-0 flex-1 basis-[46%] rounded-2xl border border-border bg-surface p-2.5"
       onPress={onPress}
       activeOpacity={0.75}
       accessibilityRole="button"
@@ -172,7 +172,9 @@ export default function RotacaoScreen() {
         </View>
       ) : null}
 
-      <View className="mx-4 mt-4 flex-row gap-2">
+      {/* Grade 2x2: com quatro atalhos, uma única linha deixaria os rótulos
+          ilegíveis em telas estreitas. */}
+      <View className="mx-4 mt-4 flex-row flex-wrap gap-2">
         <QuickAction
           icon="file-upload-outline"
           label="Extrato"
@@ -190,6 +192,12 @@ export default function RotacaoScreen() {
           label="Assinaturas"
           hint="Recorrências"
           onPress={() => router.push('/assinaturas')}
+        />
+        <QuickAction
+          icon="database-export-outline"
+          label="Backup"
+          hint="Exportar e restaurar"
+          onPress={() => router.push('/backup')}
         />
       </View>
 
