@@ -55,7 +55,9 @@ Comentário redundante (`// incrementa i` acima de `i++`) e código óbvio de UI
 - **Mudança de schema = nova migration** em `src/db/migrations/` (nunca editar uma já aplicada) + atualização de [docs/DATA_MODEL.md](docs/DATA_MODEL.md).
 - **Mudança de prompt de IA** = registro em [docs/AI_PROMPTS.md](docs/AI_PROMPTS.md) com data e motivo.
 - **Nenhum dado bruto de transação sai do dispositivo** — o `aiService` só envia agregados (ver [docs/API_CONTRACTS.md](docs/API_CONTRACTS.md)).
-- **Toda função em `utils/`** e a lógica de aplicação de migrations em `db/applyMigrations.ts` **levam teste unitário** (`npm run test`, vitest). `expo-sqlite` é módulo nativo e não roda em vitest puro — testar código que depende dele exige isolar a lógica pura num arquivo sem nenhum import de `expo-sqlite` (nem indireto) e testá-la contra um fake em memória (ver `src/db/applyMigrations.ts`/`.test.ts` como referência), não mockar o módulo nativo.
+- **Toda função em `utils/`** e a lógica de aplicação de migrations em `db/applyMigrations.ts` **levam teste unitário** (`npm run test`, vitest).
+- **Toda query em `db/queries/` leva teste** contra um SQLite real em memória, via `createTestDatabase()` de [src/db/testSupport.ts](src/db/testSupport.ts): o SQL do teste é o mesmo do app, no mesmo motor, com as migrations reais aplicadas (ver [ADR-0011](docs/adr/0011-testes-de-query-com-node-sqlite.md)).
+- A regra sobre módulo nativo continua valendo, nesta forma: **não mocke comportamento de banco; substitua só o transporte.** Um fake de `expo-sqlite` testaria o fake, não o SQL. Trocar `src/db/index.ts` (código nosso) por uma conexão `node:sqlite` real é outra coisa — nenhum comportamento de banco é simulado. Para lógica que não precisa de banco, siga isolando num arquivo sem import de `expo-sqlite`, nem indireto (ver `src/db/applyMigrations.ts` e `src/services/backupFormat.ts` como referência).
 - `npm run typecheck` limpo antes de todo commit.
 
 ## Commits
