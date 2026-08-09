@@ -117,13 +117,19 @@ export interface ChatMessage {
 }
 
 /**
- * Orçamento mensal por tag.
+ * Limite mensal de gasto de uma tag, vigente a partir de uma competência.
+ *
+ * Há uma linha por versão do limite: alterar o valor num mês novo cria outra
+ * linha em vez de sobrescrever, para que meses passados continuem avaliados
+ * contra o limite que valia à época. Ver docs/DATA_MODEL.md.
  */
 export interface Budget {
   id: string;
   tag_id: string;
   limit_cents: number;
   created_at: number;
+  /** Unix timestamp (segundos) do 1º dia do mês em que este limite passou a valer. */
+  effective_from: number;
 }
 
 /**

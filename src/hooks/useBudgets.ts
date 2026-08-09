@@ -10,43 +10,52 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
   BudgetWithProgress,
-  deleteBudget,
+  deleteBudgetForTag,
   getBudgetsWithProgress,
-  upsertBudget,
+  setBudget,
 } from '../db/queries/budgets';
 import { notifyBudgetThreshold } from '../services/notificationService';
+import { currentMonthRef, isSameMonth, type MonthRef } from '../utils/date';
 
 /** Estado e ações da aba Orçamento. */
 export interface UseBudgetsResult {
   budgets: BudgetWithProgress[];
   loading: boolean;
   load: () => Promise<void>;
-  /** Cria ou atualiza o orçamento de uma tag. */
+  /** Define o limite de uma tag a partir da competência exibida. */
   saveBudget: (tagId: string, limitCents: number) => Promise<void>;
-  /** Remove o orçamento de uma tag. */
-  removeBudget: (id: string) => Promise<void>;
+  /** Deixa de orçar uma tag (apaga todas as versões do limite). */
+  removeBudget: (tagId: string) => Promise<void>;
 }
 
 /**
- * Carrega os orçamentos com progresso do mês e dispara o aviso de 90%.
+ * Carrega os orçamentos vigentes numa competência, com o gasto do mês, e
+ * dispara o aviso de 90%.
  *
  * O aviso é disparado no máximo uma vez por tag por sessão (controle em
  * memória), pra não repetir o alerta a cada `load()` enquanto a tag segue na
- * faixa de 90–100%.
+ * faixa de 90–100%. Só vale para o mês corrente: avisar sobre um limite
+ * estourado em março, ao navegar até março, seria alarme sobre passado — nada
+ * a fazer a respeito.
  *
+ * @param month - Competência a exibir. Default: mês corrente.
  * @returns Estado reativo + ações de escrita.
  */
-export function useBudgets(): UseBudgetsResult {
+export function useBudgets(month: MonthRef = currentMonthRef()): UseBudgetsResult {
   const [budgets, setBudgets] = useState<BudgetWithProgress[]>([]);
   const [loading, setLoading] = useState(true);
   const alertedTags = useRef<Set<string>>(new Set());
+  const { month: monthNumber, year } = month;
 
   const load = useCallback(async () => {
     setLoading(true);
-    const result = await getBudgetsWithProgress();
+    const result = await getBudgetsWithProgress(monthNumber, year);
     setBudgets(result);
     setLoading(false);
 
+    if (!isSameMonth({ month: monthNumber, year }, currentMonthRef())) {
+      return;
+    }
     for (const b of result) {
       const crossed90 = b.spentCents >= b.limit_cents * 0.9 && b.spentCents < b.limit_cents;
       if (crossed90 && !alertedTags.current.has(b.tag_id)) {
@@ -58,7 +67,7 @@ export function useBudgets(): UseBudgetsResult {
         alertedTags.current.delete(b.tag_id);
       }
     }
-  }, []);
+  }, [monthNumber, year]);
 
   useEffect(() => {
     load();
@@ -66,15 +75,15 @@ export function useBudgets(): UseBudgetsResult {
 
   const saveBudget = useCallback(
     async (tagId: string, limitCents: number) => {
-      await upsertBudget(tagId, limitCents);
+      await setBudget(tagId, limitCents, monthNumber, year);
       await load();
     },
-    [load]
+    [load, monthNumber, year]
   );
 
   const removeBudget = useCallback(
-    async (id: string) => {
-      await deleteBudget(id);
+    async (tagId: string) => {
+      await deleteBudgetForTag(tagId);
       await load();
     },
     [load]

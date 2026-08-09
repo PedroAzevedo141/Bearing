@@ -122,7 +122,7 @@ export default function RotacaoScreen() {
     editTransaction,
     removeTransaction,
   } = useTransactions(month);
-  const { budgets } = useBudgets();
+  const { budgets } = useBudgets(month);
   const { purchases } = useInstallments();
   const { pending: pendingRecurring } = usePendingRecurring(month);
   const [tags, setTags] = useState<Tag[]>([]);
@@ -323,7 +323,9 @@ export default function RotacaoScreen() {
       {budgets.length > 0 ? (
         <View className="mx-5 mt-5 rounded-3xl border border-border bg-surface p-4">
           <View className="mb-3 flex-row items-center justify-between">
-            <Text className="text-base font-bold text-ink">Orçamento do mês</Text>
+            <Text className="text-base font-bold text-ink capitalize">
+              Orçamento de {formatMonthLabel(month)}
+            </Text>
             <Text className="text-xs font-semibold text-primary">{budgets.length} categorias</Text>
           </View>
           {budgets.map((budget) => {

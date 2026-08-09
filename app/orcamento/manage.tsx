@@ -49,6 +49,8 @@ export default function BudgetManageScreen() {
       <View className="p-4 bg-surface border-b border-border gap-2">
         <Text className="text-sm text-neutral-600 mb-2">
           Defina um limite mensal para os gastos de uma tag. Ao atingir 90%, você receberá um alerta.
+          O limite passa a valer a partir deste mês — meses anteriores continuam avaliados pelo
+          limite que valia neles.
         </Text>
         <TextInput
           mode="outlined"
@@ -74,7 +76,7 @@ export default function BudgetManageScreen() {
         data={budgets}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <SwipeableRow onDelete={() => removeBudget(item.id)}>
+          <SwipeableRow onDelete={() => removeBudget(item.tag_id)}>
             <View className="px-6 py-4 bg-surface flex-row justify-between items-center">
               <Text className="text-base font-bold text-neutral-900">{item.tagName}</Text>
               <Text className="text-base text-neutral-600">Limite: R$ {(item.limit_cents / 100).toFixed(2).replace('.', ',')}</Text>

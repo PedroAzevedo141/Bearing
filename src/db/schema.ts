@@ -220,3 +220,26 @@ export const SCHEMA_V7_RECURRING_LINK = `
 ALTER TABLE transactions ADD COLUMN recurring_id TEXT REFERENCES recurring_transactions(id);
 CREATE INDEX IF NOT EXISTS idx_transactions_recurring_id ON transactions(recurring_id);
 `;
+
+/**
+ * SQL da migration v8: versiona o limite de orçamento no tempo.
+ *
+ * O limite era um valor único por tag, sem noção de quando passou a valer. Com
+ * a aba Rotação navegando por meses passados, isso mentiria sobre o passado:
+ * quem subisse o limite de R$ 500 para R$ 800 veria março ser avaliado contra
+ * 800, e um mês em que estourou passaria a parecer dentro do orçamento. A
+ * pergunta "eu respeitei o orçamento em março?" só tem resposta honesta contra
+ * o limite que valia em março.
+ *
+ * Cada alteração vira uma linha nova com `effective_from` (início do mês em que
+ * passa a valer), e a leitura de uma competência pega a linha vigente mais
+ * recente até ali. O índice único impede duas versões para o mesmo mês.
+ *
+ * `DEFAULT 0` (epoch) para as linhas existentes: não há registro de quando
+ * foram definidas, e tratá-las como "sempre valeram" é a leitura honesta —
+ * qualquer outra data seria invenção.
+ */
+export const SCHEMA_V8_BUDGET_HISTORY = `
+ALTER TABLE budgets ADD COLUMN effective_from INTEGER NOT NULL DEFAULT 0;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_budgets_tag_effective ON budgets(tag_id, effective_from);
+`;
